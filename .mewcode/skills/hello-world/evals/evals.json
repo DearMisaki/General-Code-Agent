@@ -1,0 +1,23 @@
+{
+  "skill_name": "hello-world",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "say hello",
+      "expected_output": "A friendly greeting message like 'Hello, World!' or 'Hello there!'",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "give me a greeting",
+      "expected_output": "A warm, friendly greeting message",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I want a friendly welcome message",
+      "expected_output": "A welcoming hello message",
+      "files": []
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+# Binaries
+/mewcode
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test & coverage
+*.test
+*.out
+coverage.txt
+coverage.html
+
+# Go workspace
+go.work
+go.work.sum
+
+# Dependency vendors
+/vendor/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+.vscode/settings.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python (skill scripts, MCP helpers)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.mypy_cache/
+.tox/
+
+# Node
+node_modules/
+
+# Local runtime data (mewcode agent)
+.mewcode/sessions/
+.mewcode/file-history/
+.mewcode/worktrees/
+.mewcode/worktree_session.json
+.mewcode/prompt_history.jsonl
+.mewcode/settings.local.json
+.mewcode/config.yaml
+
+# Skill eval / workspace artifacts
+.mewcode/skills/**/iteration-*/
+
+# go-test scratch
+/go-test
+
+# docs
+/docs
