@@ -184,20 +184,20 @@
   - [x] Add tests proving no orphan `tool_result` is created.
   - [x] Commit the router.
 
-- [ ] Lifecycle facade exposes clear and compact operations
-  - [ ] Create `internal/contextmgr/lifecycle.go`.
-  - [ ] Create `internal/contextmgr/lifecycle_test.go`.
-  - [ ] Add `LifecycleManager`.
-  - [ ] Add `NewLifecycleManager`.
-  - [ ] Add `LifecycleManager.Recovery`.
-  - [ ] Add `LifecycleManager.Clear`.
-  - [ ] Add `LifecycleManager.ForceCompact`.
-  - [ ] Reset recovery state on clear.
-  - [ ] Route manual compaction through `Budgeter.ForceCompact`.
-  - [ ] Keep nil lifecycle behavior safe.
-  - [ ] Add tests proving clear resets recovery.
-  - [ ] Add tests proving nil-client force compact is a no-op.
-  - [ ] Commit lifecycle facade.
+- [x] Lifecycle facade exposes clear and compact operations
+  - [x] Create `internal/contextmgr/lifecycle.go`.
+  - [x] Create `internal/contextmgr/lifecycle_test.go`.
+  - [x] Add `LifecycleManager`.
+  - [x] Add `NewLifecycleManager`.
+  - [x] Add `LifecycleManager.Recovery`.
+  - [x] Add `LifecycleManager.Clear`.
+  - [x] Add `LifecycleManager.ForceCompact`.
+  - [x] Reset recovery state on clear.
+  - [x] Route manual compaction through `Budgeter.ForceCompact`.
+  - [x] Keep nil lifecycle behavior safe.
+  - [x] Add tests proving clear resets recovery.
+  - [x] Add tests proving nil-client force compact is a no-op.
+  - [x] Commit lifecycle facade.
 
 - [ ] Agent loop uses `ContextGateway`
   - [ ] Modify `internal/agent/agent.go`.
