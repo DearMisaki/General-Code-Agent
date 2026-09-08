@@ -143,23 +143,23 @@
   - [x] Add tests proving rendered context reaches `APIConversation`.
   - [x] Commit the gateway.
 
-- [ ] Recovery tracking is owned by the context layer
-  - [ ] Create `internal/contextmgr/recovery.go`.
-  - [ ] Create `internal/contextmgr/recovery_test.go`.
-  - [ ] Add `RecoveryTracker`.
-  - [ ] Add `NewRecoveryTracker`.
-  - [ ] Add `WrapRecoveryState`.
-  - [ ] Add `RecoveryTracker.CompactState`.
-  - [ ] Add `RecoveryTracker.RecordFileRead`.
-  - [ ] Add `RecoveryTracker.RecordSkillInvocation`.
-  - [ ] Add `RecoveryTracker.BuildAttachment`.
-  - [ ] Delegate to `compact.RecoveryState`.
-  - [ ] Preserve compact recovery attachment output.
-  - [ ] Keep nil receiver behavior safe.
-  - [ ] Add tests proving file snapshots appear in attachments.
-  - [ ] Add tests proving skill snapshots appear in attachments.
-  - [ ] Add tests proving tool listings appear in attachments.
-  - [ ] Commit the recovery facade.
+- [x] Recovery tracking is owned by the context layer
+  - [x] Create `internal/contextmgr/recovery.go`.
+  - [x] Create `internal/contextmgr/recovery_test.go`.
+  - [x] Add `RecoveryTracker`.
+  - [x] Add `NewRecoveryTracker`.
+  - [x] Add `WrapRecoveryState`.
+  - [x] Add `RecoveryTracker.CompactState`.
+  - [x] Add `RecoveryTracker.RecordFileRead`.
+  - [x] Add `RecoveryTracker.RecordSkillInvocation`.
+  - [x] Add `RecoveryTracker.BuildAttachment`.
+  - [x] Delegate to `compact.RecoveryState`.
+  - [x] Preserve compact recovery attachment output.
+  - [x] Keep nil receiver behavior safe.
+  - [x] Add tests proving file snapshots appear in attachments.
+  - [x] Add tests proving skill snapshots appear in attachments.
+  - [x] Add tests proving tool listings appear in attachments.
+  - [x] Commit the recovery facade.
 
 - [ ] Router owns handoff and fork conversation construction
   - [ ] Create `internal/contextmgr/router.go`.
