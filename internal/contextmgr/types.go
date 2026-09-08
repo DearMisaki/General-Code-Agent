@@ -5,6 +5,7 @@ import (
 
 	"mewcode/internal/compact"
 	"mewcode/internal/conversation"
+	"mewcode/internal/llm"
 	"mewcode/internal/permissions"
 	"mewcode/internal/toolresult"
 )
@@ -117,6 +118,7 @@ type PrepareRequest struct {
 	ContextWindow     int
 	MaxOutputTokens   int
 	Model             string
+	Client            llm.Client
 	Checker           *permissions.Checker
 	ToolSchemas       []map[string]any
 	DeferredToolNames []string

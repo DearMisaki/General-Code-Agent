@@ -119,29 +119,29 @@
   - [x] Add tests proving replacement records are returned.
   - [x] Commit the budgeter.
 
-- [ ] Context Gateway becomes the pre-send context entry point
-  - [ ] Create `internal/contextmgr/gateway.go`.
-  - [ ] Create `internal/contextmgr/gateway_test.go`.
-  - [ ] Add `GatewayOptions`.
-  - [ ] Add `ContextGateway`.
-  - [ ] Add `NewGateway`.
-  - [ ] Add `ContextGateway.PrepareTurn`.
-  - [ ] Compose `Builder`.
-  - [ ] Compose `Renderer`.
-  - [ ] Compose `Budgeter`.
-  - [ ] Compose `AuditWriter`.
-  - [ ] Build a snapshot before rendering.
-  - [ ] Render reminders into a temporary conversation copy.
-  - [ ] Apply budget management.
-  - [ ] Return `APIConversation`.
-  - [ ] Return tool schemas unchanged.
-  - [ ] Emit prepare audit records.
-  - [ ] Emit tool exposure audit records.
-  - [ ] Emit compact audit records.
-  - [ ] Emit tool-result budget audit records.
-  - [ ] Keep audit write failures non-fatal.
-  - [ ] Add tests proving rendered context reaches `APIConversation`.
-  - [ ] Commit the gateway.
+- [x] Context Gateway becomes the pre-send context entry point
+  - [x] Create `internal/contextmgr/gateway.go`.
+  - [x] Create `internal/contextmgr/gateway_test.go`.
+  - [x] Add `GatewayOptions`.
+  - [x] Add `ContextGateway`.
+  - [x] Add `NewGateway`.
+  - [x] Add `ContextGateway.PrepareTurn`.
+  - [x] Compose `Builder`.
+  - [x] Compose `Renderer`.
+  - [x] Compose `Budgeter`.
+  - [x] Compose `AuditWriter`.
+  - [x] Build a snapshot before rendering.
+  - [x] Render reminders into a temporary conversation copy.
+  - [x] Apply budget management.
+  - [x] Return `APIConversation`.
+  - [x] Return tool schemas unchanged.
+  - [x] Emit prepare audit records.
+  - [x] Emit tool exposure audit records.
+  - [x] Emit compact audit records.
+  - [x] Emit tool-result budget audit records.
+  - [x] Keep audit write failures non-fatal.
+  - [x] Add tests proving rendered context reaches `APIConversation`.
+  - [x] Commit the gateway.
 
 - [ ] Recovery tracking is owned by the context layer
   - [ ] Create `internal/contextmgr/recovery.go`.
