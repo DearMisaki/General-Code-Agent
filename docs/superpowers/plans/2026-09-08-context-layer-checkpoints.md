@@ -21,34 +21,34 @@
   - [x] Add tests proving section names are stable.
   - [x] Commit the context model.
 
-- [ ] Context Builder can create snapshots without side effects
-  - [ ] Create `internal/contextmgr/builder.go`.
-  - [ ] Create `internal/contextmgr/builder_test.go`.
-  - [ ] Add `Builder`.
-  - [ ] Add `NewBuilder`.
-  - [ ] Add `Builder.Build`.
-  - [ ] Read messages from `conversation.Manager`.
-  - [ ] Copy messages into `SessionContext`.
-  - [ ] Preserve the original conversation length.
-  - [ ] Copy active skills into `BusinessContext`.
-  - [ ] Copy tool schemas into `BusinessContext`.
-  - [ ] Copy deferred tool names into `BusinessContext`.
-  - [ ] Populate `ExecutionContext.AgentID`.
-  - [ ] Populate `ExecutionContext.AgentType`.
-  - [ ] Populate `ExecutionContext.Protocol`.
-  - [ ] Populate `ExecutionContext.WorkDir`.
-  - [ ] Populate `ExecutionContext.Iteration`.
-  - [ ] Populate `ExecutionContext.ContextWindow`.
-  - [ ] Populate `ExecutionContext.MaxOutputTokens`.
-  - [ ] Populate environment metadata from `prompt.DetectEnvironment`.
-  - [ ] Record source metadata for instructions.
-  - [ ] Record source metadata for memory.
-  - [ ] Record source metadata for skills.
-  - [ ] Record source metadata for tools.
-  - [ ] Record source metadata for conversation.
-  - [ ] Record source metadata for runtime environment.
-  - [ ] Add tests proving `Build` does not mutate the conversation.
-  - [ ] Commit the builder.
+- [x] Context Builder can create snapshots without side effects
+  - [x] Create `internal/contextmgr/builder.go`.
+  - [x] Create `internal/contextmgr/builder_test.go`.
+  - [x] Add `Builder`.
+  - [x] Add `NewBuilder`.
+  - [x] Add `Builder.Build`.
+  - [x] Read messages from `conversation.Manager`.
+  - [x] Copy messages into `SessionContext`.
+  - [x] Preserve the original conversation length.
+  - [x] Copy active skills into `BusinessContext`.
+  - [x] Copy tool schemas into `BusinessContext`.
+  - [x] Copy deferred tool names into `BusinessContext`.
+  - [x] Populate `ExecutionContext.AgentID`.
+  - [x] Populate `ExecutionContext.AgentType`.
+  - [x] Populate `ExecutionContext.Protocol`.
+  - [x] Populate `ExecutionContext.WorkDir`.
+  - [x] Populate `ExecutionContext.Iteration`.
+  - [x] Populate `ExecutionContext.ContextWindow`.
+  - [x] Populate `ExecutionContext.MaxOutputTokens`.
+  - [x] Populate environment metadata from `prompt.DetectEnvironment`.
+  - [x] Record source metadata for instructions.
+  - [x] Record source metadata for memory.
+  - [x] Record source metadata for skills.
+  - [x] Record source metadata for tools.
+  - [x] Record source metadata for conversation.
+  - [x] Record source metadata for runtime environment.
+  - [x] Add tests proving `Build` does not mutate the conversation.
+  - [x] Commit the builder.
 
 - [ ] Renderer preserves current reminder behavior
   - [ ] Create `internal/contextmgr/render.go`.
