@@ -149,6 +149,29 @@ func New(client llm.Client, registry *tools.Registry, protocol string) *Agent {
 // constructed (and again after a resume switches sessions).
 func (a *Agent) SetSessionID(id string) { a.SessionID = id }
 
+func (a *Agent) ClearContextState() {
+	a.ClearActiveSkills()
+	a.ReplacementState = toolresult.New()
+	a.RecoveryState = compact.NewRecoveryState()
+	a.ContextLifecycle = contextmgr.NewLifecycleManager(nil, contextmgr.WrapRecoveryState(a.RecoveryState))
+}
+
+func (a *Agent) ForceCompactContext(ctx context.Context, conv *conversation.Manager) (string, error) {
+	if a.ContextLifecycle == nil {
+		a.ContextLifecycle = contextmgr.NewLifecycleManager(nil, contextmgr.WrapRecoveryState(a.RecoveryState))
+	}
+	return a.ContextLifecycle.ForceCompact(ctx, contextmgr.BudgetRequest{
+		Conversation:    conv,
+		Client:          a.Client,
+		WorkDir:         a.WorkDir,
+		SessionID:       a.SessionID,
+		ContextWindow:   a.ContextWindow,
+		MaxOutputTokens: a.MaxOutputTokens,
+		Recovery:        a.RecoveryState,
+		ToolSchemas:     a.currentToolSchemas(),
+	})
+}
+
 func (a *Agent) RecordSkillInvocation(name, body string) {
 	if a.ContextLifecycle != nil && a.ContextLifecycle.Recovery() != nil {
 		a.ContextLifecycle.Recovery().RecordSkillInvocation(name, body)

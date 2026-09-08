@@ -288,24 +288,24 @@
   - [x] Run `internal/contextmgr` tests.
   - [x] Commit handoff audit integration.
 
-- [ ] Manual lifecycle APIs are available
-  - [ ] Modify `internal/agent/agent.go`.
-  - [ ] Modify `internal/agent/agent_test.go`.
-  - [ ] Add `Agent.ClearContextState`.
-  - [ ] Add `Agent.ForceCompactContext`.
-  - [ ] Reset active skills on clear.
-  - [ ] Reset replacement state on clear.
-  - [ ] Reset recovery state on clear.
-  - [ ] Reset lifecycle state on clear.
-  - [ ] Route manual compact through `LifecycleManager.ForceCompact`.
-  - [ ] Pass current tool schemas into manual compact.
-  - [ ] Preserve session ID use during manual compact.
-  - [ ] Avoid modifying `internal/tui` in this pass.
-  - [ ] Add tests for clear behavior.
-  - [ ] Add tests for nil-client force compact behavior.
-  - [ ] Run `internal/contextmgr` tests.
-  - [ ] Run `internal/agent` tests.
-  - [ ] Commit lifecycle API integration.
+- [x] Manual lifecycle APIs are available
+  - [x] Modify `internal/agent/agent.go`.
+  - [x] Modify `internal/agent/agent_test.go`.
+  - [x] Add `Agent.ClearContextState`.
+  - [x] Add `Agent.ForceCompactContext`.
+  - [x] Reset active skills on clear.
+  - [x] Reset replacement state on clear.
+  - [x] Reset recovery state on clear.
+  - [x] Reset lifecycle state on clear.
+  - [x] Route manual compact through `LifecycleManager.ForceCompact`.
+  - [x] Pass current tool schemas into manual compact.
+  - [x] Preserve session ID use during manual compact.
+  - [x] Avoid modifying `internal/tui` in this pass.
+  - [x] Add tests for clear behavior.
+  - [x] Add tests for nil-client force compact behavior.
+  - [x] Run `internal/contextmgr` tests.
+  - [x] Run `internal/agent` tests.
+  - [x] Commit lifecycle API integration.
 
 - [ ] Non-TUI regression suite is clean
   - [ ] Run all `internal/contextmgr` tests.

@@ -56,3 +56,24 @@ func TestActivateSkillRecordsRecovery(t *testing.T) {
 		t.Fatalf("skill recovery not recorded:\n%s", attachment)
 	}
 }
+
+func TestClearContextStateResetsContextCarriedState(t *testing.T) {
+	a := New(nil, nil, "anthropic")
+	a.ActivateSkill("review", "review SOP")
+	a.ContextLifecycle.Recovery().RecordFileRead("a.go", "package a")
+
+	a.ClearContextState()
+
+	if got := a.GetActiveSkills(); len(got) != 0 {
+		t.Fatalf("active skills not cleared: %v", got)
+	}
+	if a.ReplacementState == nil {
+		t.Fatalf("replacement state not reset")
+	}
+	if a.RecoveryState == nil {
+		t.Fatalf("recovery state not reset")
+	}
+	if got := a.ContextLifecycle.Recovery().BuildAttachment(nil); got != "" {
+		t.Fatalf("context lifecycle recovery not cleared:\n%s", got)
+	}
+}
