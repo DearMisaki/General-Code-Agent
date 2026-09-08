@@ -98,26 +98,26 @@
   - [x] Add tests proving JSONL is written.
   - [x] Commit the audit log.
 
-- [ ] Budgeter wraps existing size-control behavior
-  - [ ] Create `internal/contextmgr/budgeter.go`.
-  - [ ] Create `internal/contextmgr/budgeter_test.go`.
-  - [ ] Add `Budgeter`.
-  - [ ] Add `NewBudgeter`.
-  - [ ] Add `BudgetRequest`.
-  - [ ] Add `BudgetResult`.
-  - [ ] Add `Budgeter.PrepareBudget`.
-  - [ ] Route tool-result replacement through `toolresult.Apply`.
-  - [ ] Persist replacement records through `toolresult.AppendRecords`.
-  - [ ] Route automatic compaction through `compact.ManageContext`.
-  - [ ] Route manual compaction through `compact.ForceCompact`.
-  - [ ] Preserve `compact.AutoCompactTrackingState`.
-  - [ ] Return compact messages.
-  - [ ] Return tool-result replacement records.
-  - [ ] Signal usage-anchor reset after compaction.
-  - [ ] Keep nil client compaction as a no-op.
-  - [ ] Add tests proving large tool results are replaced.
-  - [ ] Add tests proving replacement records are returned.
-  - [ ] Commit the budgeter.
+- [x] Budgeter wraps existing size-control behavior
+  - [x] Create `internal/contextmgr/budgeter.go`.
+  - [x] Create `internal/contextmgr/budgeter_test.go`.
+  - [x] Add `Budgeter`.
+  - [x] Add `NewBudgeter`.
+  - [x] Add `BudgetRequest`.
+  - [x] Add `BudgetResult`.
+  - [x] Add `Budgeter.PrepareBudget`.
+  - [x] Route tool-result replacement through `toolresult.Apply`.
+  - [x] Persist replacement records through `toolresult.AppendRecords`.
+  - [x] Route automatic compaction through `compact.ManageContext`.
+  - [x] Route manual compaction through `compact.ForceCompact`.
+  - [x] Preserve `compact.AutoCompactTrackingState`.
+  - [x] Return compact messages.
+  - [x] Return tool-result replacement records.
+  - [x] Signal usage-anchor reset after compaction.
+  - [x] Keep nil client compaction as a no-op.
+  - [x] Add tests proving large tool results are replaced.
+  - [x] Add tests proving replacement records are returned.
+  - [x] Commit the budgeter.
 
 - [ ] Context Gateway becomes the pre-send context entry point
   - [ ] Create `internal/contextmgr/gateway.go`.
