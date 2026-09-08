@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"mewcode/internal/contextmgr"
 	"mewcode/internal/conversation"
 	"mewcode/internal/llm"
 	"mewcode/internal/prompt"
@@ -22,11 +23,13 @@ import (
 type mockClient struct {
 	responses [][]llm.StreamEvent
 	callIdx   int
+	lastConv  *conversation.Manager
 }
 
 func (m *mockClient) Stream(ctx context.Context, conv *conversation.Manager, toolSchemas []map[string]any) (<-chan llm.StreamEvent, <-chan error) {
 	ch := make(chan llm.StreamEvent, 64)
 	errCh := make(chan error, 1)
+	m.lastConv = conv
 	go func() {
 		defer close(ch)
 		defer close(errCh)
@@ -79,9 +82,9 @@ type mockTool struct {
 	result string
 }
 
-func (t *mockTool) Name() string                                               { return t.name }
-func (t *mockTool) Description() string                                        { return "mock tool" }
-func (t *mockTool) Category() tools.ToolCategory                               { return tools.CategoryRead }
+func (t *mockTool) Name() string                 { return t.name }
+func (t *mockTool) Description() string          { return "mock tool" }
+func (t *mockTool) Category() tools.ToolCategory { return tools.CategoryRead }
 func (t *mockTool) Schema() map[string]any {
 	return map[string]any{
 		"name": t.name, "description": "mock",
@@ -173,6 +176,33 @@ func TestAgentSimpleResponse(t *testing.T) {
 	}
 	if !hasComplete {
 		t.Error("missing LoopComplete event")
+	}
+}
+
+func TestAgentUsesContextGatewayForReminders(t *testing.T) {
+	client := &mockClient{responses: [][]llm.StreamEvent{{
+		llm.TextDelta{Text: "done"},
+		llm.StreamEnd{StopReason: "end_turn"},
+	}}}
+	ag := New(client, tools.NewRegistry(), "anthropic")
+	ag.Instructions = "repo rules"
+	ag.MemoryContent = "memory body"
+	ag.ContextGateway = contextmgr.NewGateway(contextmgr.GatewayOptions{})
+
+	conv := conversation.NewManager()
+	text, _ := runConversationRound(ag, conv, "hello")
+	if text != "done" {
+		t.Fatalf("text = %q", text)
+	}
+	if client.lastConv == nil {
+		t.Fatalf("client did not receive conversation")
+	}
+	joined := ""
+	for _, msg := range client.lastConv.GetMessages() {
+		joined += msg.Content + "\n"
+	}
+	if !strings.Contains(joined, "repo rules") || !strings.Contains(joined, "memory body") {
+		t.Fatalf("context gateway reminders missing:\n%s", joined)
 	}
 }
 

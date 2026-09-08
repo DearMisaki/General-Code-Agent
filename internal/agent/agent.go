@@ -10,13 +10,12 @@ import (
 	"time"
 
 	"mewcode/internal/compact"
+	"mewcode/internal/contextmgr"
 	"mewcode/internal/conversation"
 	"mewcode/internal/filehistory"
 	"mewcode/internal/hooks"
 	"mewcode/internal/llm"
 	"mewcode/internal/permissions"
-	"mewcode/internal/planfile"
-	"mewcode/internal/prompt"
 	"mewcode/internal/toolresult"
 	"mewcode/internal/tools"
 )
@@ -37,8 +36,8 @@ type Agent struct {
 	// compute the effective window for the compaction threshold. Zero falls
 	// back to the summaryOutputReserve default inside compact.
 	MaxOutputTokens int
-	Checker *permissions.Checker
-	Hooks   *hooks.Engine
+	Checker         *permissions.Checker
+	Hooks           *hooks.Engine
 	// SessionID identifies the on-disk session log this agent appends to. When
 	// set, Layer 2 compaction writes a compact_boundary record into that session
 	// so a later resume can rebuild the compacted state instead of replaying the
@@ -46,6 +45,7 @@ type Agent struct {
 	// one-shot callers).
 	SessionID      string
 	NotificationFn func() []string
+	ContextGateway *contextmgr.ContextGateway
 	// ToolNameFilter, when non-nil, drops any tool whose Name returns false from the schemas sent to
 	// the LLM. The filter is consulted at the top of every iteration so callers can flip Coordinator
 	// Mode on or off (e.g., when a team is created/torn down) without restarting the agent.
@@ -132,6 +132,7 @@ func New(client llm.Client, registry *tools.Registry, protocol string) *Agent {
 		ContextWindow:    200000,
 		ReplacementState: toolresult.New(),
 		RecoveryState:    compact.NewRecoveryState(),
+		ContextGateway:   contextmgr.NewGateway(contextmgr.GatewayOptions{}),
 	}
 }
 
@@ -168,8 +169,6 @@ func (a *Agent) Run(ctx context.Context, conv *conversation.Manager) <-chan Agen
 
 		a.emitHook(hooks.EventSessionStart, "", nil)
 
-		conv.InjectLongTermMemory(a.Instructions, a.MemoryContent)
-
 		var totalInput, totalOutput int
 		consecutiveUnknown := 0
 		maxTokensEscalated := false
@@ -196,63 +195,56 @@ func (a *Agent) Run(ctx context.Context, conv *conversation.Manager) <-chan Agen
 			// iterations, never within one.
 			toolSchemas := a.currentToolSchemas()
 
-			// Two-layer context management: spill+snip always, autocompact when needed.
-			if msg, err := compact.ManageContext(ctx, conv, a.Client, a.WorkDir, a.SessionID, a.ContextWindow, a.MaxOutputTokens, &a.compactTracking, a.RecoveryState, toolSchemas, usageAnchor); err == nil && msg != "" {
-				ch <- CompactEvent{Message: msg}
-				// A compaction rewrote the conversation, so the prior anchor's
-				// AnchorCount no longer maps to the new transcript. Drop it and
-				// fall back to a full estimate until the next real usage lands.
-				usageAnchor = compact.UsageAnchor{}
-			}
-
-			// Plan mode: inject structured workflow reminder.
-			if a.Checker != nil && a.Checker.Mode == permissions.ModePlan {
-				planPath := planfile.GetOrCreatePlanPath(a.WorkDir)
-				// Sync PlanFilePath onto the Checker on every turn so the Layer 0 plan-file write exception
-				// works regardless of how Plan Mode was entered (Shift+Tab, SetPermissionMode, /plan).
-				a.Checker.PlanFilePath = planPath
-				planExists := planfile.PlanExists(a.WorkDir)
-				reminder := prompt.BuildPlanModeReminder(planPath, planExists, iteration)
-				conv.AddSystemReminder(reminder)
-			}
-
+			var notifications []string
 			if a.NotificationFn != nil {
-				for _, note := range a.NotificationFn() {
-					conv.AddSystemReminder(note)
-				}
+				notifications = a.NotificationFn()
 			}
 
 			a.emitHook(hooks.EventTurnStart, "", nil)
 
-			// Re-inject active-skill SOPs as system-reminder on every turn so the model sees them at the
-			// most prominent position regardless of how long the conversation grows. Same env-context
-			// pattern as Plan Mode and NotificationFn above.
-			if reminder := buildActiveSkillsReminder(a.activeSkills); reminder != "" {
-				conv.AddSystemReminder(reminder)
+			gateway := a.ContextGateway
+			if gateway == nil {
+				gateway = contextmgr.NewGateway(contextmgr.GatewayOptions{})
+				a.ContextGateway = gateway
 			}
-
-			// Inject deferred tool names into system-reminder so the model knows what's available via
-			// ToolSearch.
-			if deferredNames := a.Registry.GetDeferredToolNames(); len(deferredNames) > 0 {
-				reminder := "The following deferred tools are available via ToolSearch. Their schemas are NOT loaded - use ToolSearch with query \"select:<name>[,<name>...]\" to load tool schemas before calling them:\n" + strings.Join(deferredNames, "\n")
-				conv.AddSystemReminder(reminder)
+			prepared, err := gateway.PrepareTurn(ctx, contextmgr.PrepareRequest{
+				Conversation:      conv,
+				WorkDir:           a.WorkDir,
+				SessionID:         a.SessionID,
+				Protocol:          a.Protocol,
+				Iteration:         iteration,
+				MaxIterations:     a.MaxIterations,
+				ContextWindow:     a.ContextWindow,
+				MaxOutputTokens:   a.MaxOutputTokens,
+				Client:            a.Client,
+				Checker:           a.Checker,
+				ToolSchemas:       toolSchemas,
+				DeferredToolNames: a.Registry.GetDeferredToolNames(),
+				ActiveSkills:      a.activeSkills,
+				Instructions:      a.Instructions,
+				MemoryContent:     a.MemoryContent,
+				Notifications:     notifications,
+				UsageAnchor:       usageAnchor,
+				CompactTracking:   a.compactTracking,
+				ReplacementState:  a.ReplacementState,
+				Recovery:          a.RecoveryState,
+			})
+			if err != nil {
+				ch <- ErrorEvent{Message: err.Error()}
+				return
+			}
+			if prepared.UsageAnchorReset {
+				usageAnchor = compact.UsageAnchor{}
+			}
+			a.compactTracking = prepared.CompactTracking
+			for _, record := range prepared.AuditRecords {
+				if record.Event == contextmgr.EventContextCompact && record.Summary != "" {
+					ch <- CompactEvent{Message: record.Summary}
+				}
 			}
 
 			a.emitHook(hooks.EventPreSend, "", nil)
-
-			// Layer 1: apply tool-result budget against ReplacementState.
-			// Returns a fresh *conversation.Manager with replacements
-			// baked in; `conv` is never mutated. All writes that happened
-			// earlier in this iteration (system reminders, plan-mode hints,
-			// active-skill SOPs) are reflected in apiConv because Apply
-			// runs after them and rebuilds the manager from conv.GetMessages().
-			apiConv, newRecords, _ := toolresult.Apply(conv, a.WorkDir, a.ReplacementState)
-			if len(newRecords) > 0 {
-				// Best-effort persistence; failure is non-fatal because the
-				// in-memory state already has the canonical decisions for
-				// this process lifetime.
-				_ = toolresult.AppendRecords(a.WorkDir, newRecords)
-			}
+			apiConv := prepared.APIConversation
 
 			events, errs := a.Client.Stream(ctx, apiConv, toolSchemas)
 

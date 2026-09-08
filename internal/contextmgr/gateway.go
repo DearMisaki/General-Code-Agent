@@ -42,19 +42,26 @@ func NewGateway(opts GatewayOptions) *ContextGateway {
 }
 
 func (g *ContextGateway) PrepareTurn(ctx context.Context, req PrepareRequest) (PreparedTurn, error) {
+	if req.Conversation == nil {
+		req.Conversation = conversation.NewManager()
+	}
+	req.Conversation.InjectLongTermMemory(req.Instructions, req.MemoryContent)
+
 	snap := g.builder.Build(req)
 
-	renderConv := conversation.NewManager()
-	if req.Conversation != nil {
-		renderConv.AppendMessages(req.Conversation.GetMessages())
-	}
-	rendered := g.renderer.Render(req, snap)
+	renderReq := req
+	renderReq.Instructions = ""
+	renderReq.MemoryContent = ""
+	renderSnap := snap
+	renderSnap.User.Instructions = ""
+	renderSnap.User.MemoryContent = ""
+	rendered := g.renderer.Render(renderReq, renderSnap)
 	for _, reminder := range rendered {
-		renderConv.AddSystemReminder(reminder)
+		req.Conversation.AddSystemReminder(reminder)
 	}
 
 	budget, err := g.budgeter.PrepareBudget(ctx, BudgetRequest{
-		Conversation:     renderConv,
+		Conversation:     req.Conversation,
 		Client:           req.Client,
 		WorkDir:          req.WorkDir,
 		SessionID:        req.SessionID,

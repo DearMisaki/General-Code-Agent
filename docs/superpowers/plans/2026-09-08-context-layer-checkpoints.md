@@ -199,41 +199,41 @@
   - [x] Add tests proving nil-client force compact is a no-op.
   - [x] Commit lifecycle facade.
 
-- [ ] Agent loop uses `ContextGateway`
-  - [ ] Modify `internal/agent/agent.go`.
-  - [ ] Modify `internal/agent/agent_test.go`.
-  - [ ] Add `ContextGateway` field to `agent.Agent`.
-  - [ ] Initialize a default gateway in `agent.New`.
-  - [ ] Gather notification messages before preparing the turn.
-  - [ ] Pass conversation to `ContextGateway.PrepareTurn`.
-  - [ ] Pass workdir to `ContextGateway.PrepareTurn`.
-  - [ ] Pass session ID to `ContextGateway.PrepareTurn`.
-  - [ ] Pass protocol to `ContextGateway.PrepareTurn`.
-  - [ ] Pass iteration metadata to `ContextGateway.PrepareTurn`.
-  - [ ] Pass context-window metadata to `ContextGateway.PrepareTurn`.
-  - [ ] Pass checker to `ContextGateway.PrepareTurn`.
-  - [ ] Pass current tool schemas to `ContextGateway.PrepareTurn`.
-  - [ ] Pass deferred tool names to `ContextGateway.PrepareTurn`.
-  - [ ] Pass active skills to `ContextGateway.PrepareTurn`.
-  - [ ] Pass instructions and memory content to `ContextGateway.PrepareTurn`.
-  - [ ] Pass usage anchor to `ContextGateway.PrepareTurn`.
-  - [ ] Pass compact tracking state to `ContextGateway.PrepareTurn`.
-  - [ ] Pass replacement state to `ContextGateway.PrepareTurn`.
-  - [ ] Pass recovery state to `ContextGateway.PrepareTurn`.
-  - [ ] Replace direct long-term memory injection.
-  - [ ] Replace direct plan reminder injection.
-  - [ ] Replace direct notification injection.
-  - [ ] Replace direct active skill reminder injection.
-  - [ ] Replace direct deferred tool reminder injection.
-  - [ ] Replace direct `compact.ManageContext` call.
-  - [ ] Replace direct `toolresult.Apply` call.
-  - [ ] Use prepared `APIConversation` for `Client.Stream`.
-  - [ ] Reset usage anchor when prepared turn says it was compacted.
-  - [ ] Preserve compact event emission.
-  - [ ] Preserve hook event order.
-  - [ ] Add tests proving gateway-rendered context reaches the LLM client.
-  - [ ] Run `internal/agent` tests.
-  - [ ] Commit the agent loop migration.
+- [x] Agent loop uses `ContextGateway`
+  - [x] Modify `internal/agent/agent.go`.
+  - [x] Modify `internal/agent/agent_test.go`.
+  - [x] Add `ContextGateway` field to `agent.Agent`.
+  - [x] Initialize a default gateway in `agent.New`.
+  - [x] Gather notification messages before preparing the turn.
+  - [x] Pass conversation to `ContextGateway.PrepareTurn`.
+  - [x] Pass workdir to `ContextGateway.PrepareTurn`.
+  - [x] Pass session ID to `ContextGateway.PrepareTurn`.
+  - [x] Pass protocol to `ContextGateway.PrepareTurn`.
+  - [x] Pass iteration metadata to `ContextGateway.PrepareTurn`.
+  - [x] Pass context-window metadata to `ContextGateway.PrepareTurn`.
+  - [x] Pass checker to `ContextGateway.PrepareTurn`.
+  - [x] Pass current tool schemas to `ContextGateway.PrepareTurn`.
+  - [x] Pass deferred tool names to `ContextGateway.PrepareTurn`.
+  - [x] Pass active skills to `ContextGateway.PrepareTurn`.
+  - [x] Pass instructions and memory content to `ContextGateway.PrepareTurn`.
+  - [x] Pass usage anchor to `ContextGateway.PrepareTurn`.
+  - [x] Pass compact tracking state to `ContextGateway.PrepareTurn`.
+  - [x] Pass replacement state to `ContextGateway.PrepareTurn`.
+  - [x] Pass recovery state to `ContextGateway.PrepareTurn`.
+  - [x] Replace direct long-term memory injection.
+  - [x] Replace direct plan reminder injection.
+  - [x] Replace direct notification injection.
+  - [x] Replace direct active skill reminder injection.
+  - [x] Replace direct deferred tool reminder injection.
+  - [x] Replace direct `compact.ManageContext` call.
+  - [x] Replace direct `toolresult.Apply` call.
+  - [x] Use prepared `APIConversation` for `Client.Stream`.
+  - [x] Reset usage anchor when prepared turn says it was compacted.
+  - [x] Preserve compact event emission.
+  - [x] Preserve hook event order.
+  - [x] Add tests proving gateway-rendered context reaches the LLM client.
+  - [x] Run `internal/agent` tests.
+  - [x] Commit the agent loop migration.
 
 - [ ] Recovery recording is routed through lifecycle
   - [ ] Modify `internal/agent/agent.go`.
