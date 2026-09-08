@@ -1,0 +1,330 @@
+# Context Layer Checkpoints
+
+- [x] Context model is explicit and stable
+  - [x] Define `RuntimeContext` as the top-level snapshot type.
+  - [x] Define `UserContext`.
+  - [x] Define `SessionContext`.
+  - [x] Define `BusinessContext`.
+  - [x] Define `ExecutionContext`.
+  - [x] Define `EnvironmentContext`.
+  - [x] Define `BudgetContext`.
+  - [x] Define stable section constants: `user`, `session`, `business`, `execution`, `environment`, `budget`.
+  - [x] Define `PrepareRequest`.
+  - [x] Define `PreparedTurn`.
+  - [x] Define `ContextNotice`.
+  - [x] Define `ContextSource`.
+  - [x] Define `HandoffPackage`.
+  - [x] Define `HandoffMode`.
+  - [x] Define `AgentRef`.
+  - [x] Define `FilteredItem`.
+  - [x] Add tests proving handoff modes are unique.
+  - [x] Add tests proving section names are stable.
+  - [x] Commit the context model.
+
+- [ ] Context Builder can create snapshots without side effects
+  - [ ] Create `internal/contextmgr/builder.go`.
+  - [ ] Create `internal/contextmgr/builder_test.go`.
+  - [ ] Add `Builder`.
+  - [ ] Add `NewBuilder`.
+  - [ ] Add `Builder.Build`.
+  - [ ] Read messages from `conversation.Manager`.
+  - [ ] Copy messages into `SessionContext`.
+  - [ ] Preserve the original conversation length.
+  - [ ] Copy active skills into `BusinessContext`.
+  - [ ] Copy tool schemas into `BusinessContext`.
+  - [ ] Copy deferred tool names into `BusinessContext`.
+  - [ ] Populate `ExecutionContext.AgentID`.
+  - [ ] Populate `ExecutionContext.AgentType`.
+  - [ ] Populate `ExecutionContext.Protocol`.
+  - [ ] Populate `ExecutionContext.WorkDir`.
+  - [ ] Populate `ExecutionContext.Iteration`.
+  - [ ] Populate `ExecutionContext.ContextWindow`.
+  - [ ] Populate `ExecutionContext.MaxOutputTokens`.
+  - [ ] Populate environment metadata from `prompt.DetectEnvironment`.
+  - [ ] Record source metadata for instructions.
+  - [ ] Record source metadata for memory.
+  - [ ] Record source metadata for skills.
+  - [ ] Record source metadata for tools.
+  - [ ] Record source metadata for conversation.
+  - [ ] Record source metadata for runtime environment.
+  - [ ] Add tests proving `Build` does not mutate the conversation.
+  - [ ] Commit the builder.
+
+- [ ] Renderer preserves current reminder behavior
+  - [ ] Create `internal/contextmgr/render.go`.
+  - [ ] Create `internal/contextmgr/render_test.go`.
+  - [ ] Add `Renderer`.
+  - [ ] Add `NewRenderer`.
+  - [ ] Add `Renderer.Render`.
+  - [ ] Render long-term instructions.
+  - [ ] Render memory content.
+  - [ ] Preserve current long-term memory wording.
+  - [ ] Render plan mode reminder through `prompt.BuildPlanModeReminder`.
+  - [ ] Synchronize `Checker.PlanFilePath` in plan mode.
+  - [ ] Render notification messages.
+  - [ ] Render active skill SOPs.
+  - [ ] Render deferred tool names.
+  - [ ] Render `ToolSearch` loading instructions.
+  - [ ] Add tests proving instructions are rendered.
+  - [ ] Add tests proving memory is rendered.
+  - [ ] Add tests proving plan mode is rendered.
+  - [ ] Add tests proving notifications are rendered.
+  - [ ] Add tests proving active skills are rendered.
+  - [ ] Add tests proving deferred tool reminders are rendered.
+  - [ ] Commit the renderer.
+
+- [ ] Audit log records context-layer events
+  - [ ] Create `internal/contextmgr/audit.go`.
+  - [ ] Create `internal/contextmgr/audit_test.go`.
+  - [ ] Define `EventContextPrepare`.
+  - [ ] Define `EventContextRender`.
+  - [ ] Define `EventContextToolResultBudget`.
+  - [ ] Define `EventContextCompact`.
+  - [ ] Define `EventContextHandoff`.
+  - [ ] Define `EventContextToolExposure`.
+  - [ ] Define `EventContextRecoveryFileRead`.
+  - [ ] Define `EventContextRecoverySkill`.
+  - [ ] Define `AuditRecord`.
+  - [ ] Add audit fields for ID and time.
+  - [ ] Add audit fields for agent, session, and context IDs.
+  - [ ] Add audit fields for summary and metadata.
+  - [ ] Add `AuditWriter`.
+  - [ ] Add `NewAuditWriter`.
+  - [ ] Add `AuditWriter.Append`.
+  - [ ] Write audit records under `.mewcode/context/audit.jsonl`.
+  - [ ] Ensure audit writes are append-only.
+  - [ ] Ensure empty workdir is a no-op.
+  - [ ] Ensure nil writer use is safe where called.
+  - [ ] Add tests proving JSONL is written.
+  - [ ] Commit the audit log.
+
+- [ ] Budgeter wraps existing size-control behavior
+  - [ ] Create `internal/contextmgr/budgeter.go`.
+  - [ ] Create `internal/contextmgr/budgeter_test.go`.
+  - [ ] Add `Budgeter`.
+  - [ ] Add `NewBudgeter`.
+  - [ ] Add `BudgetRequest`.
+  - [ ] Add `BudgetResult`.
+  - [ ] Add `Budgeter.PrepareBudget`.
+  - [ ] Route tool-result replacement through `toolresult.Apply`.
+  - [ ] Persist replacement records through `toolresult.AppendRecords`.
+  - [ ] Route automatic compaction through `compact.ManageContext`.
+  - [ ] Route manual compaction through `compact.ForceCompact`.
+  - [ ] Preserve `compact.AutoCompactTrackingState`.
+  - [ ] Return compact messages.
+  - [ ] Return tool-result replacement records.
+  - [ ] Signal usage-anchor reset after compaction.
+  - [ ] Keep nil client compaction as a no-op.
+  - [ ] Add tests proving large tool results are replaced.
+  - [ ] Add tests proving replacement records are returned.
+  - [ ] Commit the budgeter.
+
+- [ ] Context Gateway becomes the pre-send context entry point
+  - [ ] Create `internal/contextmgr/gateway.go`.
+  - [ ] Create `internal/contextmgr/gateway_test.go`.
+  - [ ] Add `GatewayOptions`.
+  - [ ] Add `ContextGateway`.
+  - [ ] Add `NewGateway`.
+  - [ ] Add `ContextGateway.PrepareTurn`.
+  - [ ] Compose `Builder`.
+  - [ ] Compose `Renderer`.
+  - [ ] Compose `Budgeter`.
+  - [ ] Compose `AuditWriter`.
+  - [ ] Build a snapshot before rendering.
+  - [ ] Render reminders into a temporary conversation copy.
+  - [ ] Apply budget management.
+  - [ ] Return `APIConversation`.
+  - [ ] Return tool schemas unchanged.
+  - [ ] Emit prepare audit records.
+  - [ ] Emit tool exposure audit records.
+  - [ ] Emit compact audit records.
+  - [ ] Emit tool-result budget audit records.
+  - [ ] Keep audit write failures non-fatal.
+  - [ ] Add tests proving rendered context reaches `APIConversation`.
+  - [ ] Commit the gateway.
+
+- [ ] Recovery tracking is owned by the context layer
+  - [ ] Create `internal/contextmgr/recovery.go`.
+  - [ ] Create `internal/contextmgr/recovery_test.go`.
+  - [ ] Add `RecoveryTracker`.
+  - [ ] Add `NewRecoveryTracker`.
+  - [ ] Add `WrapRecoveryState`.
+  - [ ] Add `RecoveryTracker.CompactState`.
+  - [ ] Add `RecoveryTracker.RecordFileRead`.
+  - [ ] Add `RecoveryTracker.RecordSkillInvocation`.
+  - [ ] Add `RecoveryTracker.BuildAttachment`.
+  - [ ] Delegate to `compact.RecoveryState`.
+  - [ ] Preserve compact recovery attachment output.
+  - [ ] Keep nil receiver behavior safe.
+  - [ ] Add tests proving file snapshots appear in attachments.
+  - [ ] Add tests proving skill snapshots appear in attachments.
+  - [ ] Add tests proving tool listings appear in attachments.
+  - [ ] Commit the recovery facade.
+
+- [ ] Router owns handoff and fork conversation construction
+  - [ ] Create `internal/contextmgr/router.go`.
+  - [ ] Create `internal/contextmgr/router_test.go`.
+  - [ ] Add `Router`.
+  - [ ] Add `NewRouter`.
+  - [ ] Add `HandoffRequest`.
+  - [ ] Add `Router.BuildHandoff`.
+  - [ ] Add `Router.BuildForkedConversation`.
+  - [ ] Support `HandoffNone`.
+  - [ ] Support `HandoffRecent`.
+  - [ ] Support `HandoffSummary`.
+  - [ ] Support `HandoffFull`.
+  - [ ] Support `HandoffFork`.
+  - [ ] Preserve thinking blocks in forked conversations.
+  - [ ] Preserve assistant content in forked conversations.
+  - [ ] Preserve completed tool-use and tool-result pairs.
+  - [ ] Insert placeholder tool results for incomplete tool-use messages.
+  - [ ] Append fork boilerplate and task.
+  - [ ] Add tests proving incomplete tool-use messages are patched.
+  - [ ] Add tests proving recent handoff keeps only recent messages.
+  - [ ] Add tests proving no orphan `tool_result` is created.
+  - [ ] Commit the router.
+
+- [ ] Lifecycle facade exposes clear and compact operations
+  - [ ] Create `internal/contextmgr/lifecycle.go`.
+  - [ ] Create `internal/contextmgr/lifecycle_test.go`.
+  - [ ] Add `LifecycleManager`.
+  - [ ] Add `NewLifecycleManager`.
+  - [ ] Add `LifecycleManager.Recovery`.
+  - [ ] Add `LifecycleManager.Clear`.
+  - [ ] Add `LifecycleManager.ForceCompact`.
+  - [ ] Reset recovery state on clear.
+  - [ ] Route manual compaction through `Budgeter.ForceCompact`.
+  - [ ] Keep nil lifecycle behavior safe.
+  - [ ] Add tests proving clear resets recovery.
+  - [ ] Add tests proving nil-client force compact is a no-op.
+  - [ ] Commit lifecycle facade.
+
+- [ ] Agent loop uses `ContextGateway`
+  - [ ] Modify `internal/agent/agent.go`.
+  - [ ] Modify `internal/agent/agent_test.go`.
+  - [ ] Add `ContextGateway` field to `agent.Agent`.
+  - [ ] Initialize a default gateway in `agent.New`.
+  - [ ] Gather notification messages before preparing the turn.
+  - [ ] Pass conversation to `ContextGateway.PrepareTurn`.
+  - [ ] Pass workdir to `ContextGateway.PrepareTurn`.
+  - [ ] Pass session ID to `ContextGateway.PrepareTurn`.
+  - [ ] Pass protocol to `ContextGateway.PrepareTurn`.
+  - [ ] Pass iteration metadata to `ContextGateway.PrepareTurn`.
+  - [ ] Pass context-window metadata to `ContextGateway.PrepareTurn`.
+  - [ ] Pass checker to `ContextGateway.PrepareTurn`.
+  - [ ] Pass current tool schemas to `ContextGateway.PrepareTurn`.
+  - [ ] Pass deferred tool names to `ContextGateway.PrepareTurn`.
+  - [ ] Pass active skills to `ContextGateway.PrepareTurn`.
+  - [ ] Pass instructions and memory content to `ContextGateway.PrepareTurn`.
+  - [ ] Pass usage anchor to `ContextGateway.PrepareTurn`.
+  - [ ] Pass compact tracking state to `ContextGateway.PrepareTurn`.
+  - [ ] Pass replacement state to `ContextGateway.PrepareTurn`.
+  - [ ] Pass recovery state to `ContextGateway.PrepareTurn`.
+  - [ ] Replace direct long-term memory injection.
+  - [ ] Replace direct plan reminder injection.
+  - [ ] Replace direct notification injection.
+  - [ ] Replace direct active skill reminder injection.
+  - [ ] Replace direct deferred tool reminder injection.
+  - [ ] Replace direct `compact.ManageContext` call.
+  - [ ] Replace direct `toolresult.Apply` call.
+  - [ ] Use prepared `APIConversation` for `Client.Stream`.
+  - [ ] Reset usage anchor when prepared turn says it was compacted.
+  - [ ] Preserve compact event emission.
+  - [ ] Preserve hook event order.
+  - [ ] Add tests proving gateway-rendered context reaches the LLM client.
+  - [ ] Run `internal/agent` tests.
+  - [ ] Commit the agent loop migration.
+
+- [ ] Recovery recording is routed through lifecycle
+  - [ ] Modify `internal/agent/agent.go`.
+  - [ ] Modify `internal/skills/load_skill_tool.go`.
+  - [ ] Modify `internal/agent/skills_test.go` if needed.
+  - [ ] Add `ContextLifecycle` field to `agent.Agent`.
+  - [ ] Initialize lifecycle in `agent.New`.
+  - [ ] Share one `compact.RecoveryState` between legacy field and lifecycle tracker.
+  - [ ] Route successful `ReadFile` snapshots through `ContextLifecycle.Recovery`.
+  - [ ] Keep fallback to `Agent.RecoveryState`.
+  - [ ] Add `Agent.RecordSkillInvocation`.
+  - [ ] Add or reuse a recovery host interface for skill loading.
+  - [ ] Update `LoadSkillTool` to call the recovery host.
+  - [ ] Add tests proving nil recovery tracker is safe.
+  - [ ] Run `internal/contextmgr` tests.
+  - [ ] Run `internal/agent` tests.
+  - [ ] Run `internal/skills` tests.
+  - [ ] Commit recovery routing.
+
+- [ ] Fork flow is migrated to Router
+  - [ ] Modify `internal/agents/agent_tool.go`.
+  - [ ] Modify `internal/agents/agent_tool_test.go` if needed.
+  - [ ] Replace local fork conversation construction with `contextmgr.Router.BuildForkedConversation`.
+  - [ ] Keep fork boilerplate in `internal/agents`.
+  - [ ] Preserve nested fork guard behavior.
+  - [ ] Preserve task ID creation behavior.
+  - [ ] Preserve background fork execution behavior.
+  - [ ] Preserve parent replacement-state cloning.
+  - [ ] Preserve exact tool registry cloning.
+  - [ ] Remove duplicated local fork builder after tests pass.
+  - [ ] Add tests proving thinking blocks are preserved.
+  - [ ] Run fork-related `internal/agents` tests.
+  - [ ] Commit fork router migration.
+
+- [ ] Sub-agent and team spawns produce handoff audit
+  - [ ] Modify `internal/agents/agent_tool.go`.
+  - [ ] Modify `internal/agents/agent_tool_test.go` if needed.
+  - [ ] Build `HandoffNone` package for synchronous definition-based sub-agents.
+  - [ ] Build `HandoffNone` package for background sub-agents.
+  - [ ] Build `HandoffNone` package for team teammates.
+  - [ ] Add `auditHandoff` helper.
+  - [ ] Write handoff audit through `contextmgr.AuditWriter`.
+  - [ ] Include destination agent ID in metadata.
+  - [ ] Include destination agent type in metadata.
+  - [ ] Include destination workdir in metadata when present.
+  - [ ] Include message count in metadata.
+  - [ ] Keep current sub-agent visibility behavior unchanged.
+  - [ ] Keep current team mailbox behavior unchanged.
+  - [ ] Keep current worktree behavior unchanged.
+  - [ ] Add tests proving handoff copies skills and tools.
+  - [ ] Run `internal/agents` tests.
+  - [ ] Run `internal/contextmgr` tests.
+  - [ ] Commit handoff audit integration.
+
+- [ ] Manual lifecycle APIs are available
+  - [ ] Modify `internal/agent/agent.go`.
+  - [ ] Modify `internal/agent/agent_test.go`.
+  - [ ] Add `Agent.ClearContextState`.
+  - [ ] Add `Agent.ForceCompactContext`.
+  - [ ] Reset active skills on clear.
+  - [ ] Reset replacement state on clear.
+  - [ ] Reset recovery state on clear.
+  - [ ] Reset lifecycle state on clear.
+  - [ ] Route manual compact through `LifecycleManager.ForceCompact`.
+  - [ ] Pass current tool schemas into manual compact.
+  - [ ] Preserve session ID use during manual compact.
+  - [ ] Avoid modifying `internal/tui` in this pass.
+  - [ ] Add tests for clear behavior.
+  - [ ] Add tests for nil-client force compact behavior.
+  - [ ] Run `internal/contextmgr` tests.
+  - [ ] Run `internal/agent` tests.
+  - [ ] Commit lifecycle API integration.
+
+- [ ] Non-TUI regression suite is clean
+  - [ ] Run all `internal/contextmgr` tests.
+  - [ ] Run `internal/agent` tests.
+  - [ ] Run `internal/agents` tests.
+  - [ ] Run `internal/compact` tests.
+  - [ ] Run `internal/conversation` tests.
+  - [ ] Run `internal/llm` tests.
+  - [ ] Run `internal/mcp` tests.
+  - [ ] Run `internal/memory` tests.
+  - [ ] Run `internal/permissions` tests.
+  - [ ] Run `internal/session` tests.
+  - [ ] Run `internal/skills` tests.
+  - [ ] Run `internal/teams` tests.
+  - [ ] Run `internal/toolresult` tests.
+  - [ ] Run `internal/tools` tests.
+  - [ ] Run `internal/worktree` tests.
+  - [ ] Run `go test ./...` once with temp `GOCACHE`.
+  - [ ] Report any TUI-only failures without inspecting TUI internals.
+  - [ ] Inspect `git diff --stat`.
+  - [ ] Confirm changes are limited to the planned packages.
+  - [ ] Commit final regression fixes.
