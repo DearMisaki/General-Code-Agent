@@ -161,28 +161,28 @@
   - [x] Add tests proving tool listings appear in attachments.
   - [x] Commit the recovery facade.
 
-- [ ] Router owns handoff and fork conversation construction
-  - [ ] Create `internal/contextmgr/router.go`.
-  - [ ] Create `internal/contextmgr/router_test.go`.
-  - [ ] Add `Router`.
-  - [ ] Add `NewRouter`.
-  - [ ] Add `HandoffRequest`.
-  - [ ] Add `Router.BuildHandoff`.
-  - [ ] Add `Router.BuildForkedConversation`.
-  - [ ] Support `HandoffNone`.
-  - [ ] Support `HandoffRecent`.
-  - [ ] Support `HandoffSummary`.
-  - [ ] Support `HandoffFull`.
-  - [ ] Support `HandoffFork`.
-  - [ ] Preserve thinking blocks in forked conversations.
-  - [ ] Preserve assistant content in forked conversations.
-  - [ ] Preserve completed tool-use and tool-result pairs.
-  - [ ] Insert placeholder tool results for incomplete tool-use messages.
-  - [ ] Append fork boilerplate and task.
-  - [ ] Add tests proving incomplete tool-use messages are patched.
-  - [ ] Add tests proving recent handoff keeps only recent messages.
-  - [ ] Add tests proving no orphan `tool_result` is created.
-  - [ ] Commit the router.
+- [x] Router owns handoff and fork conversation construction
+  - [x] Create `internal/contextmgr/router.go`.
+  - [x] Create `internal/contextmgr/router_test.go`.
+  - [x] Add `Router`.
+  - [x] Add `NewRouter`.
+  - [x] Add `HandoffRequest`.
+  - [x] Add `Router.BuildHandoff`.
+  - [x] Add `Router.BuildForkedConversation`.
+  - [x] Support `HandoffNone`.
+  - [x] Support `HandoffRecent`.
+  - [x] Support `HandoffSummary`.
+  - [x] Support `HandoffFull`.
+  - [x] Support `HandoffFork`.
+  - [x] Preserve thinking blocks in forked conversations.
+  - [x] Preserve assistant content in forked conversations.
+  - [x] Preserve completed tool-use and tool-result pairs.
+  - [x] Insert placeholder tool results for incomplete tool-use messages.
+  - [x] Append fork boilerplate and task.
+  - [x] Add tests proving incomplete tool-use messages are patched.
+  - [x] Add tests proving recent handoff keeps only recent messages.
+  - [x] Add tests proving no orphan `tool_result` is created.
+  - [x] Commit the router.
 
 - [ ] Lifecycle facade exposes clear and compact operations
   - [ ] Create `internal/contextmgr/lifecycle.go`.
