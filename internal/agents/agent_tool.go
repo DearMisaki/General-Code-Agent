@@ -318,6 +318,17 @@ func (t *AgentTool) runSync(ctx context.Context, spec SubAgentSpec, description,
 		subAgent.WorkDir = cwdOverride
 	}
 
+	handoffWorkDir := subAgent.WorkDir
+	if handoffWorkDir == "" {
+		handoffWorkDir = t.currentWorkDir()
+	}
+	handoff := contextmgr.NewRouter().BuildHandoff(contextmgr.HandoffRequest{
+		FromAgent: contextmgr.AgentRef{ID: "parent", Type: "main", WorkDir: t.currentWorkDir()},
+		ToAgent:   contextmgr.AgentRef{ID: description, Type: spec.Name, WorkDir: handoffWorkDir},
+		Mode:      contextmgr.HandoffNone,
+	})
+	auditHandoff(handoffWorkDir, handoff)
+
 	conv := conversation.NewManager()
 	if spec.SystemPromptOverride != "" {
 		conv.AddSystemReminder(spec.SystemPromptOverride)
@@ -543,6 +554,13 @@ Rules (non-negotiable):
 ` + "</fork_boilerplate>"
 
 func (t *AgentTool) runAsync(ctx context.Context, spec SubAgentSpec, description, prompt, modelOverride string) tools.ToolResult {
+	handoff := contextmgr.NewRouter().BuildHandoff(contextmgr.HandoffRequest{
+		FromAgent: contextmgr.AgentRef{ID: "parent", Type: "main", WorkDir: t.currentWorkDir()},
+		ToAgent:   contextmgr.AgentRef{ID: description, Type: spec.Name, WorkDir: t.currentWorkDir()},
+		Mode:      contextmgr.HandoffNone,
+	})
+	auditHandoff(t.currentWorkDir(), handoff)
+
 	client := t.selectClient(spec.Model, modelOverride)
 	taskID := SpawnSubAgent(ctx, t.TaskMgr, client, t.Registry, t.Protocol, spec, prompt, t.ParentChecker)
 
@@ -621,6 +639,17 @@ func (t *AgentTool) runAsTeammate(
 		prompt = notice + "\n\n" + prompt
 	}
 
+	auditDir := workdir
+	if auditDir == "" {
+		auditDir = t.currentWorkDir()
+	}
+	handoff := contextmgr.NewRouter().BuildHandoff(contextmgr.HandoffRequest{
+		FromAgent: contextmgr.AgentRef{ID: "parent", Type: "main", WorkDir: t.currentWorkDir()},
+		ToAgent:   contextmgr.AgentRef{ID: memberName, Type: subagentType, WorkDir: workdir},
+		Mode:      contextmgr.HandoffNone,
+	})
+	auditHandoff(auditDir, handoff)
+
 	result, err := teams.SpawnTeammate(ctx, teams.TeammateSpawnConfig{
 		Team:       team,
 		MemberName: memberName,
@@ -692,4 +721,28 @@ func generateAgentSlug(description string) string {
 	b := make([]byte, 4)
 	_, _ = rand.Read(b)
 	return "agent-a" + hex.EncodeToString(b)[:7]
+}
+
+func (t *AgentTool) currentWorkDir() string {
+	wd, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+	return wd
+}
+
+func auditHandoff(workDir string, pkg contextmgr.HandoffPackage) {
+	_ = contextmgr.NewAuditWriter(workDir).Append(contextmgr.AuditRecord{
+		ID:      pkg.ID,
+		Time:    pkg.CreatedAt,
+		Event:   contextmgr.EventContextHandoff,
+		AgentID: pkg.FromAgent.ID,
+		Summary: string(pkg.Mode),
+		Metadata: map[string]any{
+			"to_agent": pkg.ToAgent.ID,
+			"to_type":  pkg.ToAgent.Type,
+			"workdir":  pkg.ToAgent.WorkDir,
+			"messages": len(pkg.Messages),
+		},
+	})
 }

@@ -2,6 +2,8 @@ package agents
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -60,6 +62,30 @@ func TestDeriveSubAgentCheckerOverrideMode(t *testing.T) {
 	}
 	if deriveSubAgentChecker(nil, "plan") != nil {
 		t.Error("nil parent should propagate nil")
+	}
+}
+
+func TestAuditHandoffWritesRecord(t *testing.T) {
+	dir := t.TempDir()
+	pkg := contextmgr.HandoffPackage{
+		ID:        "handoff-1",
+		FromAgent: contextmgr.AgentRef{ID: "main"},
+		ToAgent:   contextmgr.AgentRef{ID: "worker", Type: "general-purpose", WorkDir: "/tmp/worker"},
+		Mode:      contextmgr.HandoffNone,
+	}
+
+	auditHandoff(dir, pkg)
+
+	data, err := os.ReadFile(filepath.Join(dir, ".mewcode", "context", "audit.jsonl"))
+	if err != nil {
+		t.Fatalf("read audit: %v", err)
+	}
+	text := string(data)
+	if !strings.Contains(text, `"event":"context.handoff"`) {
+		t.Fatalf("missing handoff event: %s", text)
+	}
+	if !strings.Contains(text, `"to_agent":"worker"`) {
+		t.Fatalf("missing destination metadata: %s", text)
 	}
 }
 

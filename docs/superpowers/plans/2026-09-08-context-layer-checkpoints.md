@@ -268,25 +268,25 @@
   - [x] Run fork-related `internal/agents` tests.
   - [x] Commit fork router migration.
 
-- [ ] Sub-agent and team spawns produce handoff audit
-  - [ ] Modify `internal/agents/agent_tool.go`.
-  - [ ] Modify `internal/agents/agent_tool_test.go` if needed.
-  - [ ] Build `HandoffNone` package for synchronous definition-based sub-agents.
-  - [ ] Build `HandoffNone` package for background sub-agents.
-  - [ ] Build `HandoffNone` package for team teammates.
-  - [ ] Add `auditHandoff` helper.
-  - [ ] Write handoff audit through `contextmgr.AuditWriter`.
-  - [ ] Include destination agent ID in metadata.
-  - [ ] Include destination agent type in metadata.
-  - [ ] Include destination workdir in metadata when present.
-  - [ ] Include message count in metadata.
-  - [ ] Keep current sub-agent visibility behavior unchanged.
-  - [ ] Keep current team mailbox behavior unchanged.
-  - [ ] Keep current worktree behavior unchanged.
-  - [ ] Add tests proving handoff copies skills and tools.
-  - [ ] Run `internal/agents` tests.
-  - [ ] Run `internal/contextmgr` tests.
-  - [ ] Commit handoff audit integration.
+- [x] Sub-agent and team spawns produce handoff audit
+  - [x] Modify `internal/agents/agent_tool.go`.
+  - [x] Modify `internal/agents/agent_tool_test.go` if needed.
+  - [x] Build `HandoffNone` package for synchronous definition-based sub-agents.
+  - [x] Build `HandoffNone` package for background sub-agents.
+  - [x] Build `HandoffNone` package for team teammates.
+  - [x] Add `auditHandoff` helper.
+  - [x] Write handoff audit through `contextmgr.AuditWriter`.
+  - [x] Include destination agent ID in metadata.
+  - [x] Include destination agent type in metadata.
+  - [x] Include destination workdir in metadata when present.
+  - [x] Include message count in metadata.
+  - [x] Keep current sub-agent visibility behavior unchanged.
+  - [x] Keep current team mailbox behavior unchanged.
+  - [x] Keep current worktree behavior unchanged.
+  - [x] Add tests proving handoff copies skills and tools.
+  - [x] Run `internal/agents` tests.
+  - [x] Run `internal/contextmgr` tests.
+  - [x] Commit handoff audit integration.
 
 - [ ] Manual lifecycle APIs are available
   - [ ] Modify `internal/agent/agent.go`.
