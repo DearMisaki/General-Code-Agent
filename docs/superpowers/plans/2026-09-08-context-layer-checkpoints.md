@@ -73,30 +73,30 @@
   - [x] Add tests proving deferred tool reminders are rendered.
   - [x] Commit the renderer.
 
-- [ ] Audit log records context-layer events
-  - [ ] Create `internal/contextmgr/audit.go`.
-  - [ ] Create `internal/contextmgr/audit_test.go`.
-  - [ ] Define `EventContextPrepare`.
-  - [ ] Define `EventContextRender`.
-  - [ ] Define `EventContextToolResultBudget`.
-  - [ ] Define `EventContextCompact`.
-  - [ ] Define `EventContextHandoff`.
-  - [ ] Define `EventContextToolExposure`.
-  - [ ] Define `EventContextRecoveryFileRead`.
-  - [ ] Define `EventContextRecoverySkill`.
-  - [ ] Define `AuditRecord`.
-  - [ ] Add audit fields for ID and time.
-  - [ ] Add audit fields for agent, session, and context IDs.
-  - [ ] Add audit fields for summary and metadata.
-  - [ ] Add `AuditWriter`.
-  - [ ] Add `NewAuditWriter`.
-  - [ ] Add `AuditWriter.Append`.
-  - [ ] Write audit records under `.mewcode/context/audit.jsonl`.
-  - [ ] Ensure audit writes are append-only.
-  - [ ] Ensure empty workdir is a no-op.
-  - [ ] Ensure nil writer use is safe where called.
-  - [ ] Add tests proving JSONL is written.
-  - [ ] Commit the audit log.
+- [x] Audit log records context-layer events
+  - [x] Create `internal/contextmgr/audit.go`.
+  - [x] Create `internal/contextmgr/audit_test.go`.
+  - [x] Define `EventContextPrepare`.
+  - [x] Define `EventContextRender`.
+  - [x] Define `EventContextToolResultBudget`.
+  - [x] Define `EventContextCompact`.
+  - [x] Define `EventContextHandoff`.
+  - [x] Define `EventContextToolExposure`.
+  - [x] Define `EventContextRecoveryFileRead`.
+  - [x] Define `EventContextRecoverySkill`.
+  - [x] Define `AuditRecord`.
+  - [x] Add audit fields for ID and time.
+  - [x] Add audit fields for agent, session, and context IDs.
+  - [x] Add audit fields for summary and metadata.
+  - [x] Add `AuditWriter`.
+  - [x] Add `NewAuditWriter`.
+  - [x] Add `AuditWriter.Append`.
+  - [x] Write audit records under `.mewcode/context/audit.jsonl`.
+  - [x] Ensure audit writes are append-only.
+  - [x] Ensure empty workdir is a no-op.
+  - [x] Ensure nil writer use is safe where called.
+  - [x] Add tests proving JSONL is written.
+  - [x] Commit the audit log.
 
 - [ ] Budgeter wraps existing size-control behavior
   - [ ] Create `internal/contextmgr/budgeter.go`.

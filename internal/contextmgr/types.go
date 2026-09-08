@@ -95,14 +95,14 @@ type ContextNotice struct {
 type EventType string
 
 type AuditRecord struct {
-	ID        string
-	Time      time.Time
-	Event     EventType
-	AgentID   string
-	SessionID string
-	ContextID string
-	Summary   string
-	Metadata  map[string]any
+	ID        string         `json:"id"`
+	Time      time.Time      `json:"time"`
+	Event     EventType      `json:"event"`
+	AgentID   string         `json:"agent_id,omitempty"`
+	SessionID string         `json:"session_id,omitempty"`
+	ContextID string         `json:"context_id,omitempty"`
+	Summary   string         `json:"summary,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
 }
 
 type PrepareRequest struct {
