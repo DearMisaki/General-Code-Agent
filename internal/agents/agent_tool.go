@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"mewcode/internal/agent"
+	"mewcode/internal/contextmgr"
 	"mewcode/internal/conversation"
 	"mewcode/internal/llm"
 	"mewcode/internal/permissions"
@@ -89,7 +90,7 @@ type AgentTool struct {
 	QuerySource string
 }
 
-func (t *AgentTool) Name() string              { return "Agent" }
+func (t *AgentTool) Name() string                 { return "Agent" }
 func (t *AgentTool) Category() tools.ToolCategory { return tools.CategoryCommand }
 
 func (t *AgentTool) Description() string {
@@ -424,7 +425,7 @@ func (t *AgentTool) runFork(ctx context.Context, description, prompt, modelOverr
 	}
 
 	// Build forked conversation: copy parent messages + patch incomplete tool_use + append task.
-	forkedConv := buildForkedConversation(t.Conversation, prompt)
+	forkedConv := contextmgr.NewRouter().BuildForkedConversation(t.Conversation, prompt, forkBoilerplate)
 
 	client := t.selectClient("", modelOverride)
 	// Fork inherits the parent's exact tool pool to keep API request prefixes byte-identical for
@@ -540,45 +541,6 @@ Rules (non-negotiable):
 4. Stay strictly within your assigned task scope.
 5. Final report must be under 500 characters, starting with "Scope:".
 ` + "</fork_boilerplate>"
-
-func buildForkedConversation(parent *conversation.Manager, task string) *conversation.Manager {
-	forked := conversation.NewManager()
-	msgs := parent.GetMessages()
-
-	// Byte-exact replay: preserve thinking blocks alongside tool_use so the API request prefix matches
-	// the parent's exactly (cf. "keeping all content blocks (thinking, text, and every tool_use)").
-	// Missing thinking blocks would change the assistant message shape and bust the prompt cache.
-	for _, msg := range msgs {
-		if len(msg.ToolUses) > 0 && len(msg.ToolResults) == 0 {
-			forked.AddAssistantFull(msg.Content, msg.ThinkingBlocks, msg.ToolUses)
-			var placeholders []conversation.ToolResultBlock
-			for _, tu := range msg.ToolUses {
-				placeholders = append(placeholders, conversation.ToolResultBlock{
-					ToolUseID: tu.ToolUseID,
-					Content:   "(tool execution interrupted by fork)",
-					IsError:   false,
-				})
-			}
-			forked.AddToolResultsMessage(placeholders)
-		} else if len(msg.ToolUses) > 0 {
-			forked.AddAssistantFull(msg.Content, msg.ThinkingBlocks, msg.ToolUses)
-		} else if len(msg.ToolResults) > 0 {
-			forked.AddToolResultsMessage(msg.ToolResults)
-		} else if msg.Role == "assistant" {
-			if len(msg.ThinkingBlocks) > 0 {
-				forked.AddAssistantFull(msg.Content, msg.ThinkingBlocks, nil)
-			} else {
-				forked.AddAssistantMessage(msg.Content)
-			}
-		} else {
-			forked.AddUserMessage(msg.Content)
-		}
-	}
-
-	// Append fork boilerplate + task as user message.
-	forked.AddUserMessage(forkBoilerplate + "\n\nYour task:\n" + task)
-	return forked
-}
 
 func (t *AgentTool) runAsync(ctx context.Context, spec SubAgentSpec, description, prompt, modelOverride string) tools.ToolResult {
 	client := t.selectClient(spec.Model, modelOverride)

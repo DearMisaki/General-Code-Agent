@@ -253,20 +253,20 @@
   - [x] Run `internal/skills` tests.
   - [x] Commit recovery routing.
 
-- [ ] Fork flow is migrated to Router
-  - [ ] Modify `internal/agents/agent_tool.go`.
-  - [ ] Modify `internal/agents/agent_tool_test.go` if needed.
-  - [ ] Replace local fork conversation construction with `contextmgr.Router.BuildForkedConversation`.
-  - [ ] Keep fork boilerplate in `internal/agents`.
-  - [ ] Preserve nested fork guard behavior.
-  - [ ] Preserve task ID creation behavior.
-  - [ ] Preserve background fork execution behavior.
-  - [ ] Preserve parent replacement-state cloning.
-  - [ ] Preserve exact tool registry cloning.
-  - [ ] Remove duplicated local fork builder after tests pass.
-  - [ ] Add tests proving thinking blocks are preserved.
-  - [ ] Run fork-related `internal/agents` tests.
-  - [ ] Commit fork router migration.
+- [x] Fork flow is migrated to Router
+  - [x] Modify `internal/agents/agent_tool.go`.
+  - [x] Modify `internal/agents/agent_tool_test.go` if needed.
+  - [x] Replace local fork conversation construction with `contextmgr.Router.BuildForkedConversation`.
+  - [x] Keep fork boilerplate in `internal/agents`.
+  - [x] Preserve nested fork guard behavior.
+  - [x] Preserve task ID creation behavior.
+  - [x] Preserve background fork execution behavior.
+  - [x] Preserve parent replacement-state cloning.
+  - [x] Preserve exact tool registry cloning.
+  - [x] Remove duplicated local fork builder after tests pass.
+  - [x] Add tests proving thinking blocks are preserved.
+  - [x] Run fork-related `internal/agents` tests.
+  - [x] Commit fork router migration.
 
 - [ ] Sub-agent and team spawns produce handoff audit
   - [ ] Modify `internal/agents/agent_tool.go`.

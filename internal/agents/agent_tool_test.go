@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"mewcode/internal/contextmgr"
 	"mewcode/internal/conversation"
 	"mewcode/internal/permissions"
 	"mewcode/internal/tools"
@@ -20,7 +21,7 @@ func TestBuildForkedConversationPreservesThinkingBlocks(t *testing.T) {
 		{ToolUseID: "tool_1", ToolName: "Bash", Arguments: map[string]any{"command": "ls"}},
 	})
 
-	forked := buildForkedConversation(parent, "do work")
+	forked := contextmgr.NewRouter().BuildForkedConversation(parent, "do work", forkBoilerplate)
 	msgs := forked.GetMessages()
 	var found *conversation.Message
 	for i := range msgs {
