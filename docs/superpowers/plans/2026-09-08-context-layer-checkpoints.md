@@ -50,28 +50,28 @@
   - [x] Add tests proving `Build` does not mutate the conversation.
   - [x] Commit the builder.
 
-- [ ] Renderer preserves current reminder behavior
-  - [ ] Create `internal/contextmgr/render.go`.
-  - [ ] Create `internal/contextmgr/render_test.go`.
-  - [ ] Add `Renderer`.
-  - [ ] Add `NewRenderer`.
-  - [ ] Add `Renderer.Render`.
-  - [ ] Render long-term instructions.
-  - [ ] Render memory content.
-  - [ ] Preserve current long-term memory wording.
-  - [ ] Render plan mode reminder through `prompt.BuildPlanModeReminder`.
-  - [ ] Synchronize `Checker.PlanFilePath` in plan mode.
-  - [ ] Render notification messages.
-  - [ ] Render active skill SOPs.
-  - [ ] Render deferred tool names.
-  - [ ] Render `ToolSearch` loading instructions.
-  - [ ] Add tests proving instructions are rendered.
-  - [ ] Add tests proving memory is rendered.
-  - [ ] Add tests proving plan mode is rendered.
-  - [ ] Add tests proving notifications are rendered.
-  - [ ] Add tests proving active skills are rendered.
-  - [ ] Add tests proving deferred tool reminders are rendered.
-  - [ ] Commit the renderer.
+- [x] Renderer preserves current reminder behavior
+  - [x] Create `internal/contextmgr/render.go`.
+  - [x] Create `internal/contextmgr/render_test.go`.
+  - [x] Add `Renderer`.
+  - [x] Add `NewRenderer`.
+  - [x] Add `Renderer.Render`.
+  - [x] Render long-term instructions.
+  - [x] Render memory content.
+  - [x] Preserve current long-term memory wording.
+  - [x] Render plan mode reminder through `prompt.BuildPlanModeReminder`.
+  - [x] Synchronize `Checker.PlanFilePath` in plan mode.
+  - [x] Render notification messages.
+  - [x] Render active skill SOPs.
+  - [x] Render deferred tool names.
+  - [x] Render `ToolSearch` loading instructions.
+  - [x] Add tests proving instructions are rendered.
+  - [x] Add tests proving memory is rendered.
+  - [x] Add tests proving plan mode is rendered.
+  - [x] Add tests proving notifications are rendered.
+  - [x] Add tests proving active skills are rendered.
+  - [x] Add tests proving deferred tool reminders are rendered.
+  - [x] Commit the renderer.
 
 - [ ] Audit log records context-layer events
   - [ ] Create `internal/contextmgr/audit.go`.
