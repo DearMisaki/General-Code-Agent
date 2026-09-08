@@ -70,7 +70,11 @@ type Agent struct {
 	// file reads and skill invocations. The struct is concurrency-safe so
 	// the streaming executor can write to it from multiple goroutines.
 	RecoveryState *compact.RecoveryState
-	eventCh       chan AgentEvent
+	// ContextLifecycle owns context clear/compact/recovery operations for the
+	// explicit Context Layer while RecoveryState remains available to legacy
+	// compact call sites during the migration.
+	ContextLifecycle *contextmgr.LifecycleManager
+	eventCh          chan AgentEvent
 	// activeSkills holds Skill SOPs that have been pinned to the environment context. Each Agent Loop
 	// iteration re-injects all entries as system-reminders, so the model sees them at the most
 	// prominent position regardless of how long the conversation grows. Populated by ActivateSkill
@@ -88,6 +92,7 @@ func (a *Agent) ActivateSkill(name, body string) {
 		a.activeSkills = make(map[string]string)
 	}
 	a.activeSkills[name] = body
+	a.RecordSkillInvocation(name, body)
 }
 
 // ClearActiveSkills drops every pinned SOP. Called by /clear so a fresh conversation doesn't carry
@@ -123,6 +128,7 @@ func (a *Agent) ToolRegistry() *tools.Registry {
 
 func New(client llm.Client, registry *tools.Registry, protocol string) *Agent {
 	wd, _ := os.Getwd()
+	recovery := compact.NewRecoveryState()
 	return &Agent{
 		Client:           client,
 		Registry:         registry,
@@ -131,8 +137,9 @@ func New(client llm.Client, registry *tools.Registry, protocol string) *Agent {
 		MaxIterations:    0,
 		ContextWindow:    200000,
 		ReplacementState: toolresult.New(),
-		RecoveryState:    compact.NewRecoveryState(),
+		RecoveryState:    recovery,
 		ContextGateway:   contextmgr.NewGateway(contextmgr.GatewayOptions{}),
+		ContextLifecycle: contextmgr.NewLifecycleManager(nil, contextmgr.WrapRecoveryState(recovery)),
 	}
 }
 
@@ -141,6 +148,16 @@ func New(client llm.Client, registry *tools.Registry, protocol string) *Agent {
 // is appending plain messages to. Called from the TUI right after the agent is
 // constructed (and again after a resume switches sessions).
 func (a *Agent) SetSessionID(id string) { a.SessionID = id }
+
+func (a *Agent) RecordSkillInvocation(name, body string) {
+	if a.ContextLifecycle != nil && a.ContextLifecycle.Recovery() != nil {
+		a.ContextLifecycle.Recovery().RecordSkillInvocation(name, body)
+		return
+	}
+	if a.RecoveryState != nil {
+		a.RecoveryState.RecordSkillInvocation(name, body)
+	}
+}
 
 // currentToolSchemas builds the schema list the next API call will use,
 // honouring any active skill's allowed-tools filter. Shared between the
@@ -641,7 +658,11 @@ func (a *Agent) executeSingleTool(ctx context.Context, eventCh chan AgentEvent, 
 	if !result.IsError && tc.ToolName == "ReadFile" {
 		if p, _ := tc.Arguments["file_path"].(string); p != "" {
 			if data, err := os.ReadFile(p); err == nil {
-				a.RecoveryState.RecordFileRead(p, string(data))
+				if a.ContextLifecycle != nil && a.ContextLifecycle.Recovery() != nil {
+					a.ContextLifecycle.Recovery().RecordFileRead(p, string(data))
+				} else if a.RecoveryState != nil {
+					a.RecoveryState.RecordFileRead(p, string(data))
+				}
 			}
 		}
 	}

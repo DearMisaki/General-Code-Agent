@@ -15,6 +15,7 @@ import (
 // so the same fixture covers RunInline and RunFork.
 type stubHost struct {
 	activated     map[string]string
+	recovered     map[string]string
 	filterAllow   func(string) bool
 	registry      *tools.Registry
 	parentMsgs    []conversation.Message
@@ -26,12 +27,13 @@ type stubHost struct {
 }
 
 func newStubHost(reg *tools.Registry) *stubHost {
-	return &stubHost{activated: map[string]string{}, registry: reg}
+	return &stubHost{activated: map[string]string{}, recovered: map[string]string{}, registry: reg}
 }
 
-func (s *stubHost) ActivateSkill(name, body string)        { s.activated[name] = body }
-func (s *stubHost) SetToolFilter(f func(string) bool)      { s.filterAllow = f }
-func (s *stubHost) ToolRegistry() *tools.Registry          { return s.registry }
+func (s *stubHost) ActivateSkill(name, body string)         { s.activated[name] = body }
+func (s *stubHost) RecordSkillInvocation(name, body string) { s.recovered[name] = body }
+func (s *stubHost) SetToolFilter(f func(string) bool)       { s.filterAllow = f }
+func (s *stubHost) ToolRegistry() *tools.Registry           { return s.registry }
 func (s *stubHost) SnapshotParentMessages() []conversation.Message {
 	out := make([]conversation.Message, len(s.parentMsgs))
 	copy(out, s.parentMsgs)
@@ -203,6 +205,9 @@ func TestLoadSkillToolReturnsConfirmation(t *testing.T) {
 	}
 	if host.activated["commit"] == "" {
 		t.Errorf("ActivateSkill not called")
+	}
+	if host.recovered["commit"] != "do commit stuff" {
+		t.Errorf("RecordSkillInvocation not called")
 	}
 }
 

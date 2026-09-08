@@ -23,11 +23,15 @@ type LoadSkillTool struct {
 	Host    SkillHost
 }
 
-func (t *LoadSkillTool) Name() string                 { return "LoadSkill" }
+type SkillRecoveryHost interface {
+	RecordSkillInvocation(name, body string)
+}
+
+func (t *LoadSkillTool) Name() string { return "LoadSkill" }
 
 func (t *LoadSkillTool) Category() tools.ToolCategory { return tools.CategoryRead }
 
-func (t *LoadSkillTool) IsSystemTool() bool           { return true }
+func (t *LoadSkillTool) IsSystemTool() bool { return true }
 
 func (t *LoadSkillTool) Description() string {
 	return "Activate a Skill by name. The Skill's SOP gets pinned to the environment " +
@@ -71,6 +75,9 @@ func (t *LoadSkillTool) Execute(_ context.Context, args map[string]any) tools.To
 	}
 
 	t.Host.ActivateSkill(skill.Meta.Name, skill.PromptBody)
+	if recoveryHost, ok := t.Host.(SkillRecoveryHost); ok {
+		recoveryHost.RecordSkillInvocation(skill.Meta.Name, skill.PromptBody)
+	}
 
 	registered := 0
 	if skill.IsDirectory {

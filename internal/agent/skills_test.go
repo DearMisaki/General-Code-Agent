@@ -3,6 +3,8 @@ package agent
 import (
 	"strings"
 	"testing"
+
+	"mewcode/internal/contextmgr"
 )
 
 func TestActivateAndClearSkills(t *testing.T) {
@@ -45,3 +47,12 @@ func TestActiveSkillsReminderEmpty(t *testing.T) {
 	}
 }
 
+func TestActivateSkillRecordsRecovery(t *testing.T) {
+	a := &Agent{ContextLifecycle: contextmgr.NewLifecycleManager(nil, contextmgr.NewRecoveryTracker())}
+	a.ActivateSkill("review", "review SOP")
+
+	attachment := a.ContextLifecycle.Recovery().BuildAttachment(nil)
+	if !strings.Contains(attachment, "review SOP") {
+		t.Fatalf("skill recovery not recorded:\n%s", attachment)
+	}
+}

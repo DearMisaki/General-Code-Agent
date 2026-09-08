@@ -235,23 +235,23 @@
   - [x] Run `internal/agent` tests.
   - [x] Commit the agent loop migration.
 
-- [ ] Recovery recording is routed through lifecycle
-  - [ ] Modify `internal/agent/agent.go`.
-  - [ ] Modify `internal/skills/load_skill_tool.go`.
-  - [ ] Modify `internal/agent/skills_test.go` if needed.
-  - [ ] Add `ContextLifecycle` field to `agent.Agent`.
-  - [ ] Initialize lifecycle in `agent.New`.
-  - [ ] Share one `compact.RecoveryState` between legacy field and lifecycle tracker.
-  - [ ] Route successful `ReadFile` snapshots through `ContextLifecycle.Recovery`.
-  - [ ] Keep fallback to `Agent.RecoveryState`.
-  - [ ] Add `Agent.RecordSkillInvocation`.
-  - [ ] Add or reuse a recovery host interface for skill loading.
-  - [ ] Update `LoadSkillTool` to call the recovery host.
-  - [ ] Add tests proving nil recovery tracker is safe.
-  - [ ] Run `internal/contextmgr` tests.
-  - [ ] Run `internal/agent` tests.
-  - [ ] Run `internal/skills` tests.
-  - [ ] Commit recovery routing.
+- [x] Recovery recording is routed through lifecycle
+  - [x] Modify `internal/agent/agent.go`.
+  - [x] Modify `internal/skills/load_skill_tool.go`.
+  - [x] Modify `internal/agent/skills_test.go` if needed.
+  - [x] Add `ContextLifecycle` field to `agent.Agent`.
+  - [x] Initialize lifecycle in `agent.New`.
+  - [x] Share one `compact.RecoveryState` between legacy field and lifecycle tracker.
+  - [x] Route successful `ReadFile` snapshots through `ContextLifecycle.Recovery`.
+  - [x] Keep fallback to `Agent.RecoveryState`.
+  - [x] Add `Agent.RecordSkillInvocation`.
+  - [x] Add or reuse a recovery host interface for skill loading.
+  - [x] Update `LoadSkillTool` to call the recovery host.
+  - [x] Add tests proving nil recovery tracker is safe.
+  - [x] Run `internal/contextmgr` tests.
+  - [x] Run `internal/agent` tests.
+  - [x] Run `internal/skills` tests.
+  - [x] Commit recovery routing.
 
 - [ ] Fork flow is migrated to Router
   - [ ] Modify `internal/agents/agent_tool.go`.
