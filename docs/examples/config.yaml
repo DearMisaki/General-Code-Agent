@@ -1,0 +1,105 @@
+# mewcode config template
+#
+# Default lookup order:
+# 1. ~/.mewcode/config.yaml
+# 2. <project>/.mewcode/config.yaml
+# 3. <project>/.mewcode/config.local.yaml
+#
+# Later files override/merge earlier files. Keep real API keys in environment
+# variables or in config.local.yaml, and do not commit secrets.
+
+providers:
+  # OpenAI official API.
+  - name: openai
+    protocol: openai
+    base_url: https://api.openai.com/v1
+    model: gpt-4.1
+    # Optional. If omitted, OPENAI_API_KEY is used.
+    api_key: ""
+    # Optional. Enable only for models/protocols that support reasoning output.
+    thinking: false
+    # Optional explicit override. If 0 or omitted, the app resolves it from
+    # fetched provider metadata, built-in model mapping, or conservative default.
+    context_window: 1000000
+    # Optional. Defaults to 8192, or 64000 when thinking is true.
+    max_output_tokens: 8192
+
+  # Anthropic official API.
+  - name: anthropic
+    protocol: anthropic
+    base_url: https://api.anthropic.com
+    model: claude-sonnet-4-20250514
+    # Optional. If omitted, ANTHROPIC_API_KEY is used.
+    api_key: ""
+    thinking: true
+    context_window: 200000
+    max_output_tokens: 64000
+
+  # OpenAI-compatible providers, for example local gateways, vLLM, LiteLLM,
+  # OpenRouter, DashScope compatible mode, or custom enterprise gateways.
+  - name: compatible
+    protocol: openai-compat
+    base_url: http://127.0.0.1:8000/v1
+    model: local-model
+    # Optional. If omitted, OPENAI_API_KEY is used.
+    api_key: ""
+    thinking: false
+    context_window: 128000
+    max_output_tokens: 8192
+
+# Optional. Supported by config, but permission-mode semantics are enforced by
+# the caller components that read this value.
+permission_mode: default
+
+# Optional MCP servers.
+mcp_servers:
+  # Stdio MCP server.
+  - name: filesystem
+    command: npx
+    args:
+      - -y
+      - "@modelcontextprotocol/server-filesystem"
+      - .
+    env:
+      NODE_OPTIONS: "--max-old-space-size=4096"
+
+  # HTTP/SSE MCP server.
+  - name: remote-example
+    url: https://example.com/mcp
+    # Valid values depend on the MCP server. Empty/default uses streamable HTTP;
+    # use "sse" for SSE endpoints.
+    transport: ""
+    headers:
+      Authorization: "Bearer ${REMOTE_MCP_TOKEN}"
+
+# Optional hooks.
+hooks:
+  - id: session-start-log
+    event: session_start
+    once: true
+    action:
+      type: command
+      command: "printf 'mewcode session started\n'"
+    on_error: ignore
+
+  - id: block-dangerous-rm
+    event: pre_tool_use
+    if: "tool == 'Bash' && args.command contains 'rm -rf'"
+    reject: true
+    action:
+      type: command
+      command: "printf 'blocked dangerous rm command\n'"
+    on_error: reject
+
+  - id: post-tool-webhook
+    event: post_tool_use
+    async: true
+    action:
+      type: http
+      url: https://example.com/hooks/mewcode
+      method: POST
+      headers:
+        Content-Type: application/json
+      body: '{"event":"post_tool_use"}'
+      timeout: 10s
+    on_error: ignore
