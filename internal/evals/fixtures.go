@@ -10,18 +10,34 @@ import (
 
 func SyntheticConversation(size int, toolResultBytes int) *conversation.Manager {
 	conv := conversation.NewManager()
-	payload := strings.Repeat("x", max(0, toolResultBytes))
-	for i := 0; i < size; i++ {
+	if size <= 0 {
+		return conv
+	}
+
+	ordinaryMessages := size
+	if toolResultBytes > 0 {
+		ordinaryMessages = max(0, size-2)
+	}
+	for i := 0; i < ordinaryMessages; i++ {
 		if i%2 == 0 {
 			conv.AddUserMessage(fmt.Sprintf("[ctx-%04d] user request %d", i, i))
 			continue
 		}
-		content := fmt.Sprintf("[ctx-%04d] assistant response %d", i, i)
-		if toolResultBytes > 0 {
-			content += "\n" + payload
-		}
-		conv.AddAssistantMessage(content)
+		conv.AddAssistantMessage(fmt.Sprintf("[ctx-%04d] assistant response %d", i, i))
 	}
+	if toolResultBytes <= 0 {
+		return conv
+	}
+
+	toolUseID := fmt.Sprintf("synthetic-tool-use-%04d", ordinaryMessages)
+	if size > 1 {
+		conv.AddAssistantFull("synthetic benchmark tool call", nil, []conversation.ToolUseBlock{{
+			ToolUseID: toolUseID,
+			ToolName:  "SyntheticTool0000",
+			Arguments: map[string]any{"fixture": "deterministic"},
+		}})
+	}
+	conv.AddToolResultMessage(toolUseID, strings.Repeat("x", toolResultBytes), false)
 	return conv
 }
 
@@ -49,6 +65,14 @@ func SyntheticToolSchemas(count int) []map[string]any {
 			"description": "synthetic benchmark tool",
 			"parameters":  map[string]any{"type": "object"},
 		})
+	}
+	return out
+}
+
+func SyntheticDeferredToolNames(count int) []string {
+	out := make([]string, 0, count)
+	for i := 0; i < count; i++ {
+		out = append(out, fmt.Sprintf("SyntheticTool%04d", i))
 	}
 	return out
 }

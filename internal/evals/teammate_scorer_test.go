@@ -57,6 +57,21 @@ func TestScoreTeammateEvalTreatsEmptyExpectedMessageFieldsAsWildcards(t *testing
 	}
 }
 
+func TestScoreTeammateEvalPenalizesExtraObservedMessages(t *testing.T) {
+	score := ScoreTeammateEval(TeammateEvalCase{
+		ExpectedMessages: []ObservedMessage{{From: "lead", To: "worker", TaskID: "task-1"}},
+	}, TeammateEvalObservation{
+		Messages: []ObservedMessage{
+			{From: "lead", To: "worker", TaskID: "task-1"},
+			{From: "lead", To: "wrong-worker", TaskID: "task-1"},
+		},
+	})
+
+	if score.MessageDeliveryAccuracy != 0.5 {
+		t.Fatalf("delivery accuracy = %f, want 0.5", score.MessageDeliveryAccuracy)
+	}
+}
+
 func TestScoreTeammateEvalComputesCollaborationCompletionFromTransitions(t *testing.T) {
 	score := ScoreTeammateEval(TeammateEvalCase{
 		ExpectedTaskTransitions: []ObservedTaskTransition{

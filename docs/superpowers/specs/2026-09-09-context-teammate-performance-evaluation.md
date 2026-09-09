@@ -578,6 +578,6 @@ Teammate 失败：
 - AgentBench：用多环境任务成功率评测 LLM-as-Agent。https://doi.org/10.48550/arXiv.2308.03688
 - Mosaic multi-agent evaluation：多 Agent 系统需要同时评估 outcome、process、coordination、overhead、deadlock/loop。https://doi.org/10.1145/3772363.3798830
 
-## 6. 执行命令索引
+## 9. 执行命令索引
 
 详细命令见 `docs/superpowers/specs/2026-09-09-context-teammate-performance-commands.md`。

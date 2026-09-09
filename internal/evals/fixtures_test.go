@@ -13,11 +13,31 @@ func TestSyntheticConversationCreatesRequestedMessages(t *testing.T) {
 	}
 }
 
-func TestSyntheticToolResultSize(t *testing.T) {
-	conv := SyntheticConversation(2, 1024)
+func TestSyntheticConversationCreatesSingleActualToolResult(t *testing.T) {
+	conv := SyntheticConversation(100, 1024)
 	msgs := conv.GetMessages()
-	if !strings.Contains(msgs[1].Content, strings.Repeat("x", 1024)) {
-		t.Fatalf("tool result payload missing requested size")
+
+	toolUses := make(map[string]int)
+	var results int
+	for _, msg := range msgs {
+		if strings.Contains(msg.Content, strings.Repeat("x", 1024)) {
+			t.Fatal("tool result payload stored in ordinary message content")
+		}
+		for _, use := range msg.ToolUses {
+			toolUses[use.ToolUseID]++
+		}
+		for _, result := range msg.ToolResults {
+			results++
+			if result.Content != strings.Repeat("x", 1024) {
+				t.Fatalf("tool result size = %d, want 1024", len(result.Content))
+			}
+			if toolUses[result.ToolUseID] != 1 {
+				t.Fatalf("tool result %q has %d matching tool uses, want 1", result.ToolUseID, toolUses[result.ToolUseID])
+			}
+		}
+	}
+	if results != 1 {
+		t.Fatalf("tool results = %d, want 1", results)
 	}
 }
 

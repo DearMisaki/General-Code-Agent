@@ -85,12 +85,18 @@ func BenchmarkTaskBoardUpdateLargeHistory(b *testing.B) {
 			CreatedAt: time.Unix(int64(i), 0).UTC(),
 		}
 	}
-	if err := board.write(boardFile{Tasks: []BoardTask{task}, History: history}); err != nil {
+	fixture := boardFile{Tasks: []BoardTask{task}, History: history}
+	if err := board.write(fixture); err != nil {
 		b.Fatal(err)
 	}
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		b.StopTimer()
+		if err := board.write(fixture); err != nil {
+			b.Fatal(err)
+		}
+		b.StartTimer()
 		if err := board.UpdateTask(task.ID, "agent-a", BoardTaskInProgress, "benchmark update", ""); err != nil {
 			b.Fatal(err)
 		}

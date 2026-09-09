@@ -1,6 +1,9 @@
 package evals
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestScoreContextEvalComputesPrecisionRecallF1(t *testing.T) {
 	score := ScoreContextEval(ContextEvalCase{
@@ -107,6 +110,37 @@ func TestScoreContextEvalLimitsAtKAndDefaultsKToSelectedLength(t *testing.T) {
 	})
 	if defaultK.PrecisionAtK != 1 || defaultK.RecallAtK != 1 {
 		t.Fatalf("default K score = %+v", defaultK)
+	}
+}
+
+func TestScoreContextEvalPreservesExplicitKWhenFewerContextsAreSelected(t *testing.T) {
+	score := ScoreContextEval(ContextEvalCase{
+		RequiredContextIDs: []string{"a", "b"},
+		K:                  5,
+	}, []RankedContext{
+		{ID: "a", Rank: 1},
+		{ID: "b", Rank: 2},
+	})
+
+	if score.PrecisionAtK != 0.4 || score.RecallAtK != 1 {
+		t.Fatalf("at K score = %+v, want precision 0.4 and recall 1", score)
+	}
+}
+
+func TestScoreContextEvalDuplicateNDCGConsumesRankPosition(t *testing.T) {
+	score := ScoreContextEval(ContextEvalCase{
+		RequiredContextIDs: []string{"gold", "silver"},
+		Gains:              map[string]float64{"gold": 3, "silver": 2},
+		K:                  3,
+	}, []RankedContext{
+		{ID: "gold", Rank: 1},
+		{ID: "gold", Rank: 2},
+		{ID: "silver", Rank: 3},
+	})
+
+	want := (3.0 + 2.0/math.Log2(4)) / (3.0 + 2.0/math.Log2(3))
+	if math.Abs(score.NDCGAtK-want) > 1e-12 {
+		t.Fatalf("NDCGAtK = %.12f, want %.12f", score.NDCGAtK, want)
 	}
 }
 

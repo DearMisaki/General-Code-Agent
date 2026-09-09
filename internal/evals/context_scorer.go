@@ -53,17 +53,18 @@ func ScoreContextEval(tc ContextEvalCase, selected []RankedContext) ContextEvalS
 	score.F1 = f1(score.Precision, score.Recall)
 
 	k := tc.K
-	if k <= 0 || k > len(ordered) {
+	if k <= 0 {
 		k = len(ordered)
 	}
-	topK := ordered[:k]
+	topKCount := min(k, len(ordered))
+	topK := ordered[:topKCount]
 	topKSeenRelevant := make(map[string]struct{})
 	for _, context := range topK {
 		if _, ok := required[context.ID]; ok {
 			topKSeenRelevant[context.ID] = struct{}{}
 		}
 	}
-	score.PrecisionAtK = ratio(len(topKSeenRelevant), len(topK))
+	score.PrecisionAtK = ratio(len(topKSeenRelevant), k)
 	score.RecallAtK = ratio(len(topKSeenRelevant), len(required))
 
 	for _, context := range ordered {
@@ -72,7 +73,7 @@ func ScoreContextEval(tc ContextEvalCase, selected []RankedContext) ContextEvalS
 			break
 		}
 	}
-	score.NDCGAtK = ndcgAtK(tc, topK, required)
+	score.NDCGAtK = ndcgAtK(tc, topK, required, k)
 	return score
 }
 
@@ -119,7 +120,7 @@ func f1(precision, recall float64) float64 {
 	return 2 * precision * recall / (precision + recall)
 }
 
-func ndcgAtK(tc ContextEvalCase, selected []RankedContext, required map[string]struct{}) float64 {
+func ndcgAtK(tc ContextEvalCase, selected []RankedContext, required map[string]struct{}, k int) float64 {
 	gain := func(id string) float64 {
 		if tc.Gains != nil {
 			return tc.Gains[id]
@@ -131,16 +132,12 @@ func ndcgAtK(tc ContextEvalCase, selected []RankedContext, required map[string]s
 	}
 
 	dcg := 0.0
-	uniqueSelected := make([]RankedContext, 0, len(selected))
 	seenIDs := make(map[string]struct{}, len(selected))
-	for _, context := range selected {
+	for position, context := range selected {
 		if _, seen := seenIDs[context.ID]; seen {
 			continue
 		}
 		seenIDs[context.ID] = struct{}{}
-		uniqueSelected = append(uniqueSelected, context)
-	}
-	for position, context := range uniqueSelected {
 		dcg += gain(context.ID) / math.Log2(float64(position+2))
 	}
 
@@ -157,8 +154,8 @@ func ndcgAtK(tc ContextEvalCase, selected []RankedContext, required map[string]s
 		}
 	}
 	sort.Sort(sort.Reverse(sort.Float64Slice(idealGains)))
-	if len(idealGains) > len(uniqueSelected) {
-		idealGains = idealGains[:len(uniqueSelected)]
+	if len(idealGains) > k {
+		idealGains = idealGains[:k]
 	}
 	idcg := 0.0
 	for position, value := range idealGains {

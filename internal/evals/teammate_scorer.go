@@ -53,7 +53,7 @@ func ScoreTeammateEval(tc TeammateEvalCase, obs TeammateEvalObservation) Teammat
 
 	score.MessageDeliveryAccuracy = ratio(
 		matchMessages(tc.ExpectedMessages, obs.Messages),
-		len(tc.ExpectedMessages),
+		max(len(tc.ExpectedMessages), len(obs.Messages)),
 	)
 	score.CollaborationCompletion = ratio(
 		matchTransitions(tc.ExpectedTaskTransitions, obs.TaskTransitions),

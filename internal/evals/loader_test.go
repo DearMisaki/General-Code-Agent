@@ -39,3 +39,20 @@ func TestLoadTeammateEvalCasesSortsByCaseID(t *testing.T) {
 		t.Fatalf("cases = %+v", cases)
 	}
 }
+
+func TestRepositoryTeammateEvalCasesCoverAllCollaborationModes(t *testing.T) {
+	cases, err := LoadTeammateEvalCases(filepath.Join("..", "..", "testdata", "evals", "teammate"))
+	if err != nil {
+		t.Fatalf("LoadTeammateEvalCases() = %v", err)
+	}
+
+	covered := make(map[string]bool)
+	for _, tc := range cases {
+		covered[tc.Mode] = true
+	}
+	for _, mode := range []string{"delegation", "peer", "task_board"} {
+		if !covered[mode] {
+			t.Errorf("collaboration mode %q has no golden fixture", mode)
+		}
+	}
+}
