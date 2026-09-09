@@ -86,6 +86,26 @@ func TestFormatInboundAsPromptMultiple(t *testing.T) {
 	}
 }
 
+func TestFormatInboundAsPromptGroupsBoardMessages(t *testing.T) {
+	got := formatInboundAsPrompt([]FileMailMessage{
+		{Kind: "assignment", From: LeadName, TaskID: "task_1", Text: "implement parser"},
+		{Kind: "board_update", From: "reviewer", TaskID: "task_1", Text: "status=review"},
+		{From: "alice", Text: "please check file"},
+	})
+	for _, want := range []string{
+		"Assignments:",
+		"task_1 from lead: implement parser",
+		"Board updates:",
+		"task_1 from reviewer: status=review",
+		"Messages:",
+		"From alice: please check file",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("formatted prompt missing %q:\n%s", want, got)
+		}
+	}
+}
+
 func TestWaitForNextPromptOrShutdownShutdown(t *testing.T) {
 	dir := t.TempDir()
 	team := &Team{

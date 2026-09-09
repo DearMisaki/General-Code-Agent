@@ -209,10 +209,43 @@ func formatInboundAsPrompt(msgs []FileMailMessage) string {
 	if len(msgs) == 0 {
 		return ""
 	}
+	var assignments []FileMailMessage
+	var updates []FileMailMessage
+	var regular []FileMailMessage
+	for _, m := range msgs {
+		switch m.Kind {
+		case "assignment":
+			assignments = append(assignments, m)
+		case "board_update":
+			updates = append(updates, m)
+		default:
+			regular = append(regular, m)
+		}
+	}
 	var sb strings.Builder
 	sb.WriteString("You have new messages from your team:\n\n")
-	for _, m := range msgs {
-		sb.WriteString(fmt.Sprintf("From %s: %s\n\n", m.From, m.Text))
+	writeTaskMessages := func(title string, batch []FileMailMessage) {
+		if len(batch) == 0 {
+			return
+		}
+		sb.WriteString(title)
+		sb.WriteString(":\n")
+		for _, m := range batch {
+			if m.TaskID != "" {
+				sb.WriteString(fmt.Sprintf("- %s from %s: %s\n", m.TaskID, m.From, m.Text))
+			} else {
+				sb.WriteString(fmt.Sprintf("- from %s: %s\n", m.From, m.Text))
+			}
+		}
+		sb.WriteString("\n")
+	}
+	writeTaskMessages("Assignments", assignments)
+	writeTaskMessages("Board updates", updates)
+	if len(regular) > 0 {
+		sb.WriteString("Messages:\n")
+		for _, m := range regular {
+			sb.WriteString(fmt.Sprintf("- From %s: %s\n", m.From, m.Text))
+		}
 	}
 	return sb.String()
 }
