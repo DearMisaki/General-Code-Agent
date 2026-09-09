@@ -12,6 +12,8 @@ type FileMailBox struct {
 	baseDir string
 }
 
+const mailboxLockTimeout = 30 * time.Second
+
 type FileMailMessage struct {
 	ID        string            `json:"id,omitempty"`
 	Kind      string            `json:"kind,omitempty"`
@@ -76,10 +78,11 @@ func (mb *FileMailBox) MarkAllRead(agentID string) error {
 func (mb *FileMailBox) withLock(agentID string, fn func([]FileMailMessage) ([]FileMailMessage, error)) error {
 	lockFile := mb.lockPath(agentID)
 
-	// Acquire lock with retries
+	// Wait for the lock condition with a bounded timeout so queued writers are not dropped.
 	var lockFd *os.File
 	var err error
-	for attempt := 0; attempt < 10; attempt++ {
+	deadline := time.Now().Add(mailboxLockTimeout)
+	for time.Now().Before(deadline) {
 		lockFd, err = os.OpenFile(lockFile, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
 		if err == nil {
 			break
