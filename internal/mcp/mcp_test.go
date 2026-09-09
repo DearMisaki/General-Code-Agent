@@ -3,11 +3,16 @@ package mcp
 import (
 	"context"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 )
 
 func TestContext7MCP(t *testing.T) {
+	if os.Getenv("MEWCODE_RUN_LIVE_MCP_TESTS") != "1" {
+		t.Skip("set MEWCODE_RUN_LIVE_MCP_TESTS=1 to run live Context7 MCP integration test")
+	}
+
 	cfg := ServerConfig{
 		Name:    "context7",
 		Command: "npx",
@@ -79,4 +84,3 @@ func truncate(s string, max int) string {
 	}
 	return s[:max] + fmt.Sprintf("... (%d bytes total)", len(s))
 }
-
