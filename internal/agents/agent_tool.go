@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"mewcode/internal/contextmgr"
 	"mewcode/internal/conversation"
 	"mewcode/internal/llm"
+	"mewcode/internal/orchestration"
 	"mewcode/internal/permissions"
 	"mewcode/internal/teams"
 	"mewcode/internal/toolresult"
@@ -69,6 +71,7 @@ type AgentTool struct {
 	Loader        *AgentLoader
 	Conversation  *conversation.Manager // parent conversation, needed for Fork
 	TeamMgr       *teams.TeamManager    // optional, enables team_name parameter
+	Orchestrator  *orchestration.Orchestrator
 
 	// ParentChecker is the parent agent's permission checker. The Sandbox and RuleEngine are reused;
 	// only Mode is overridden when the sub-agent definition / call sets a different permissionMode.
@@ -328,6 +331,7 @@ func (t *AgentTool) runSync(ctx context.Context, spec SubAgentSpec, description,
 		Mode:      contextmgr.HandoffNone,
 	})
 	auditHandoff(handoffWorkDir, handoff)
+	t.recordDelegationSession(description, spec.Name, "", handoffWorkDir)
 
 	conv := conversation.NewManager()
 	if spec.SystemPromptOverride != "" {
@@ -462,6 +466,7 @@ func (t *AgentTool) runFork(ctx context.Context, description, prompt, modelOverr
 		taskName = agentName
 	}
 	taskID := t.TaskMgr.CreateTask(taskName + ": " + truncate(prompt, 50))
+	t.recordDelegationSession(taskName, ForkAgentType, taskID, t.currentWorkDir())
 	forkCtx, cancel := context.WithCancel(ctx)
 	t.TaskMgr.SetRunning(taskID, cancel)
 
@@ -563,6 +568,7 @@ func (t *AgentTool) runAsync(ctx context.Context, spec SubAgentSpec, description
 
 	client := t.selectClient(spec.Model, modelOverride)
 	taskID := SpawnSubAgent(ctx, t.TaskMgr, client, t.Registry, t.Protocol, spec, prompt, t.ParentChecker)
+	t.recordDelegationSession(description, spec.Name, taskID, t.currentWorkDir())
 
 	return tools.ToolResult{
 		Output: fmt.Sprintf(
@@ -672,6 +678,7 @@ func (t *AgentTool) runAsTeammate(
 	if result.Mode == teams.ModeInProcess && result.EventCh != nil {
 		go drainTeammateEvents(memberName, result.EventCh, t.ProgressCh)
 	}
+	t.recordPeerSession(team, memberName, subagentType, workdir)
 
 	backendHint := string(result.Mode)
 	if result.PaneID != "" {
@@ -686,6 +693,44 @@ func (t *AgentTool) runAsTeammate(
 			memberName, teamName, backendHint,
 		),
 	}
+}
+
+func (t *AgentTool) recordDelegationSession(childName, childType, taskID, workdir string) {
+	orch := t.Orchestrator
+	if orch == nil {
+		orch = orchestration.NewFileOrchestrator("", filepath.Join(t.currentWorkDir(), ".mewcode", "agents"))
+	}
+	_, _ = orch.StartDelegation(
+		orchestration.AgentRef{ID: "parent", Name: "parent", Type: "main", Role: "parent", WorkDir: t.currentWorkDir()},
+		orchestration.AgentRef{ID: childName, Name: childName, Type: childType, Role: "child", WorkDir: workdir},
+		taskID,
+	)
+}
+
+func (t *AgentTool) recordPeerSession(team *teams.Team, memberName, memberType, workdir string) {
+	if team == nil || team.Orchestrator == nil {
+		return
+	}
+	var participants []orchestration.AgentRef
+	for name := range team.Members {
+		participants = append(participants, orchestration.AgentRef{
+			ID:   name,
+			Name: name,
+			Type: "teammate",
+			Role: "peer",
+		})
+	}
+	participants = append(participants, orchestration.AgentRef{
+		ID:      memberName,
+		Name:    memberName,
+		Type:    memberType,
+		Role:    "peer",
+		WorkDir: workdir,
+	})
+	_, _ = team.Orchestrator.StartPeerSession(
+		orchestration.AgentRef{ID: "lead", Name: "lead", Type: "lead", Role: "parent", WorkDir: t.currentWorkDir()},
+		participants,
+	)
 }
 
 // drainTeammateEvents consumes a teammate's event stream so the producer side never blocks on a

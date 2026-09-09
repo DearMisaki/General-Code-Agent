@@ -9,7 +9,9 @@ import (
 
 	"mewcode/internal/contextmgr"
 	"mewcode/internal/conversation"
+	"mewcode/internal/orchestration"
 	"mewcode/internal/permissions"
+	"mewcode/internal/teams"
 	"mewcode/internal/tools"
 )
 
@@ -86,6 +88,52 @@ func TestAuditHandoffWritesRecord(t *testing.T) {
 	}
 	if !strings.Contains(text, `"to_agent":"worker"`) {
 		t.Fatalf("missing destination metadata: %s", text)
+	}
+}
+
+func TestRecordDelegationSessionCreatesSession(t *testing.T) {
+	dir := t.TempDir()
+	orch := &orchestration.Orchestrator{
+		Sessions: orchestration.NewSessionStore(filepath.Join(dir, "sessions")),
+	}
+	tool := &AgentTool{Orchestrator: orch}
+
+	tool.recordDelegationSession("worker", "general-purpose", "task_1", "/tmp/worker")
+
+	sessions, err := orch.Sessions.ListSessions()
+	if err != nil {
+		t.Fatalf("list sessions: %v", err)
+	}
+	if len(sessions) != 1 {
+		t.Fatalf("got %d sessions, want 1", len(sessions))
+	}
+	session := sessions[0]
+	if session.Mode != orchestration.ModeDelegation || session.TaskBoardID != "task_1" {
+		t.Fatalf("unexpected session: %+v", session)
+	}
+	if len(session.Participants) != 1 || session.Participants[0].Name != "worker" {
+		t.Fatalf("unexpected participants: %+v", session.Participants)
+	}
+}
+
+func TestRecordPeerSessionCreatesSession(t *testing.T) {
+	t.Setenv("MEWCODE_TEAMS_DIR", filepath.Join(t.TempDir(), "teams"))
+	team := teams.NewTeam("peer-demo", teams.ModeInProcess)
+	team.AddMember("alice", nil, nil, "")
+	tool := &AgentTool{}
+
+	tool.recordPeerSession(team, "bob", "builder", "/tmp/bob")
+
+	sessions, err := team.Orchestrator.Sessions.ListSessions()
+	if err != nil {
+		t.Fatalf("list sessions: %v", err)
+	}
+	if len(sessions) != 1 {
+		t.Fatalf("got %d sessions, want 1", len(sessions))
+	}
+	session := sessions[0]
+	if session.Mode != orchestration.ModePeer || len(session.Participants) != 2 {
+		t.Fatalf("unexpected peer session: %+v", session)
 	}
 }
 

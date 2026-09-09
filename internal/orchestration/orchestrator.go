@@ -1,6 +1,9 @@
 package orchestration
 
-import "fmt"
+import (
+	"fmt"
+	"path/filepath"
+)
 
 const LeadName = "lead"
 
@@ -9,6 +12,14 @@ type Orchestrator struct {
 	Board    *TaskBoard
 	Mail     *MailRouter
 	Sessions *SessionStore
+}
+
+func NewFileOrchestrator(teamName, baseDir string) *Orchestrator {
+	return &Orchestrator{
+		TeamName: teamName,
+		Board:    NewTaskBoard(filepath.Join(baseDir, "board.json")),
+		Sessions: NewSessionStore(filepath.Join(baseDir, "sessions")),
+	}
 }
 
 func (o *Orchestrator) StartDelegation(parent, child AgentRef, taskID string) (CollaborationSession, error) {
