@@ -183,5 +183,85 @@ func TestSendMessageToolUnknownSenderToLead(t *testing.T) {
 	}
 }
 
+func TestTaskBoardToolsCreateClaimAndComplete(t *testing.T) {
+	tm := NewTeamManager()
+	team := tm.CreateTeam("board-demo", ModeInProcess)
+	team.AddMember("alice", nil, nil, "")
+
+	create := (&TaskCreateTool{TeamMgr: tm}).Execute(context.Background(), map[string]any{
+		"team_name":   "board-demo",
+		"title":       "implement parser",
+		"description": "write parser code",
+		"priority":    float64(7),
+	})
+	if create.IsError {
+		t.Fatalf("create errored: %s", create.Output)
+	}
+
+	tasks, err := team.Orchestrator.Board.ListTasks()
+	if err != nil {
+		t.Fatalf("list board: %v", err)
+	}
+	if len(tasks) != 1 {
+		t.Fatalf("got %d tasks, want 1", len(tasks))
+	}
+
+	claim := (&TaskClaimTool{TeamMgr: tm}).Execute(context.Background(), map[string]any{
+		"team_name":  "board-demo",
+		"task_id":    tasks[0].ID,
+		"agent_name": "alice",
+	})
+	if claim.IsError {
+		t.Fatalf("claim errored: %s", claim.Output)
+	}
+	secondClaim := (&TaskClaimTool{TeamMgr: tm}).Execute(context.Background(), map[string]any{
+		"team_name":  "board-demo",
+		"task_id":    tasks[0].ID,
+		"agent_name": "bob",
+	})
+	if !secondClaim.IsError {
+		t.Fatal("second claim should fail")
+	}
+
+	update := (&TaskUpdateTool{TeamMgr: tm}).Execute(context.Background(), map[string]any{
+		"team_name":  "board-demo",
+		"task_id":    tasks[0].ID,
+		"agent_name": "alice",
+		"status":     string(orchestration.BoardTaskDone),
+		"result":     "parser implemented",
+	})
+	if update.IsError {
+		t.Fatalf("update errored: %s", update.Output)
+	}
+	msgs, err := team.MailBox.ReadUnread(LeadName)
+	if err != nil {
+		t.Fatalf("read lead inbox: %v", err)
+	}
+	if len(msgs) == 0 || msgs[len(msgs)-1].Kind != string(orchestration.MailKindBoardUpdate) {
+		t.Fatalf("missing board update message: %+v", msgs)
+	}
+}
+
+func TestTaskListAndGetTools(t *testing.T) {
+	tm := NewTeamManager()
+	team := tm.CreateTeam("board-list", ModeInProcess)
+	task, err := team.Orchestrator.CreateBoardTask(orchestration.BoardTask{Title: "review code"})
+	if err != nil {
+		t.Fatalf("create task: %v", err)
+	}
+
+	list := (&TaskListTool{TeamMgr: tm}).Execute(context.Background(), map[string]any{"team_name": "board-list"})
+	if list.IsError || !strings.Contains(list.Output, task.ID) {
+		t.Fatalf("list output = %q error=%v", list.Output, list.IsError)
+	}
+	get := (&TaskGetTool{TeamMgr: tm}).Execute(context.Background(), map[string]any{
+		"team_name": "board-list",
+		"task_id":   task.ID,
+	})
+	if get.IsError || !strings.Contains(get.Output, "review code") {
+		t.Fatalf("get output = %q error=%v", get.Output, get.IsError)
+	}
+}
+
 var _ = filepath.Join
 var _ = os.Getwd

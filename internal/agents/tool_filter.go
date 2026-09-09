@@ -61,6 +61,7 @@ var InProcessTeammateAllowedTools = map[string]bool{
 	"TaskCreate":  true,
 	"TaskGet":     true,
 	"TaskList":    true,
+	"TaskClaim":   true,
 	"TaskUpdate":  true,
 	"SendMessage": true,
 	"CronCreate":  true,
@@ -146,4 +147,3 @@ func FilterToolsForAgentEx(reg *tools.Registry, allowedTools, disallowedTools []
 	}
 	return filtered
 }
-
