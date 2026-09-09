@@ -1,0 +1,7 @@
+{
+  "case_id": "ctx_constraint_retention_001",
+  "required_context_ids": ["constraint_no_tui", "constraint_no_revert"],
+  "forbidden_context_ids": ["stale_goal_old_feature"],
+  "required_constraints": ["不阅读 TUI 相关代码", "不回滚用户改动"],
+  "k": 5
+}

@@ -1,0 +1,6 @@
+{
+  "case_id": "ctx_tool_result_recall_001",
+  "required_context_ids": ["tool_result_recall_001", "tool_result_recall_002"],
+  "forbidden_context_ids": ["stale_tool_result_001"],
+  "k": 3
+}

@@ -1,0 +1,15 @@
+{
+  "case_id": "team_delegation_001",
+  "mode": "delegation",
+  "expected_tool_calls": [
+    {"name": "TaskCreate", "args": {"team_name": "alpha", "task_id": "task-delegate-1"}},
+    {"name": "SendMessage", "args": {"to": "worker", "task_id": "task-delegate-1"}}
+  ],
+  "expected_messages": [
+    {"from": "lead", "to": "worker", "task_id": "task-delegate-1"}
+  ],
+  "expected_task_transitions": [
+    {"task_id": "task-delegate-1", "from_status": "pending", "to_status": "assigned"}
+  ],
+  "max_allowed_messages": 5
+}
