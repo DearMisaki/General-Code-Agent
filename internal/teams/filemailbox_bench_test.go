@@ -1,7 +1,9 @@
 package teams
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"path/filepath"
 	"sync/atomic"
 	"testing"
@@ -28,15 +30,22 @@ func BenchmarkFileMailBoxSend(b *testing.B) {
 func BenchmarkFileMailBoxSendParallel(b *testing.B) {
 	mb := NewFileMailBox(filepath.Join(b.TempDir(), "inboxes"))
 	var ids atomic.Int64
+	var lockErrors atomic.Int64
 	b.ReportAllocs()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			id := ids.Add(1)
-			if err := mb.Send("agent-a", FileMailMessage{ID: fmt.Sprintf("msg-%d", id), From: "lead", Text: "x", Timestamp: benchmarkMailboxTimestamp}); err != nil {
+			err := mb.Send("agent-a", FileMailMessage{ID: fmt.Sprintf("msg-%d", id), From: "lead", Text: "x", Timestamp: benchmarkMailboxTimestamp})
+			if errors.Is(err, fs.ErrExist) {
+				lockErrors.Add(1)
+				continue
+			}
+			if err != nil {
 				b.Fatal(err)
 			}
 		}
 	})
+	b.ReportMetric(float64(lockErrors.Load())/float64(b.N), "lock_errors/op")
 }
 
 func BenchmarkFileMailBoxReadUnread(b *testing.B) {
