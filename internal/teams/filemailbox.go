@@ -13,12 +13,17 @@ type FileMailBox struct {
 }
 
 type FileMailMessage struct {
-	From      string `json:"from"`
-	Text      string `json:"text"`
-	Timestamp string `json:"timestamp"`
-	Read      bool   `json:"read"`
-	Color     string `json:"color,omitempty"`
-	Summary   string `json:"summary,omitempty"`
+	ID        string            `json:"id,omitempty"`
+	Kind      string            `json:"kind,omitempty"`
+	From      string            `json:"from"`
+	Text      string            `json:"text"`
+	Timestamp string            `json:"timestamp"`
+	Read      bool              `json:"read"`
+	Color     string            `json:"color,omitempty"`
+	Summary   string            `json:"summary,omitempty"`
+	TeamName  string            `json:"team_name,omitempty"`
+	TaskID    string            `json:"task_id,omitempty"`
+	Metadata  map[string]string `json:"metadata,omitempty"`
 }
 
 func NewFileMailBox(baseDir string) *FileMailBox {
@@ -134,4 +139,3 @@ func (mb *FileMailBox) writeInbox(agentID string, messages []FileMailMessage) er
 	}
 	return os.WriteFile(path, data, 0644)
 }
-

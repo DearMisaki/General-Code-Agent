@@ -30,6 +30,37 @@ func TestFileMailBoxSendAndRead(t *testing.T) {
 	}
 }
 
+func TestFileMailBoxPreservesTypedMetadata(t *testing.T) {
+	dir := t.TempDir()
+	mb := NewFileMailBox(filepath.Join(dir, "inboxes"))
+	err := mb.Send("agent-b", FileMailMessage{
+		ID:       "mail_1",
+		Kind:     "assignment",
+		From:     "agent-a",
+		Text:     "do task",
+		TeamName: "demo",
+		TaskID:   "task_1",
+		Metadata: map[string]string{"priority": "10"},
+	})
+	if err != nil {
+		t.Fatalf("send: %v", err)
+	}
+	msgs, err := mb.ReadUnread("agent-b")
+	if err != nil {
+		t.Fatalf("read: %v", err)
+	}
+	if len(msgs) != 1 {
+		t.Fatalf("got %d messages, want 1", len(msgs))
+	}
+	msg := msgs[0]
+	if msg.ID != "mail_1" || msg.Kind != "assignment" || msg.TeamName != "demo" || msg.TaskID != "task_1" {
+		t.Fatalf("typed fields not preserved: %+v", msg)
+	}
+	if msg.Metadata["priority"] != "10" {
+		t.Fatalf("metadata not preserved: %+v", msg.Metadata)
+	}
+}
+
 func TestFileMailBoxReadUnread(t *testing.T) {
 	dir := t.TempDir()
 	mb := NewFileMailBox(filepath.Join(dir, "inboxes"))
