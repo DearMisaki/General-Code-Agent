@@ -125,7 +125,7 @@ func TestDetectBackendFallback(t *testing.T) {
 
 func TestDetectBackendPrefersTmuxWhenInside(t *testing.T) {
 	t.Setenv("TMUX", "/tmp/sock,1,0")
-	if got := detectBackend(); got != ModeTmux {
+	if got := detectPaneBackend(); got != ModeTmux {
 		t.Errorf("expected tmux when TMUX set, got %q", got)
 	}
 }
@@ -136,7 +136,7 @@ func TestDetectBackendPicksITermWhenInside(t *testing.T) {
 	// PATH without tmux so we don't fall back to it.
 	emptyDir := t.TempDir()
 	t.Setenv("PATH", emptyDir)
-	if got := detectBackend(); got != ModeITerm {
+	if got := detectPaneBackend(); got != ModeITerm {
 		t.Errorf("expected iterm, got %q", got)
 	}
 }
