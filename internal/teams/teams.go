@@ -65,6 +65,7 @@ func NewTeam(name string, mode TeamMode) *Team {
 			Board:    orchestration.NewTaskBoard(filepath.Join(teamDir, "board.json")),
 			Mail:     orchestration.NewMailRouter(name, teamMailboxAdapter{box: mailbox}),
 			Sessions: orchestration.NewSessionStore(filepath.Join(teamDir, "sessions")),
+			Monitor:  orchestration.NewMonitor(filepath.Join(teamDir, "events.jsonl")),
 		},
 	}
 }
