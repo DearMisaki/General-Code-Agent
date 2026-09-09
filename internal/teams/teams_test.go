@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"mewcode/internal/orchestration"
 )
 
 func TestFileMailBoxRoundTrip(t *testing.T) {
@@ -77,6 +79,27 @@ func TestTeamManagerCRUD(t *testing.T) {
 	tm.DeleteTeam("alpha")
 	if got := tm.GetTeam("alpha"); got != nil {
 		t.Error("DeleteTeam did not remove team")
+	}
+}
+
+func TestNewTeamInitializesOrchestrator(t *testing.T) {
+	team := NewTeam("orchestrated", ModeInProcess)
+	if team.MailBox == nil {
+		t.Fatal("mailbox must be initialized")
+	}
+	if team.Orchestrator == nil {
+		t.Fatal("orchestrator must be initialized")
+	}
+	task, err := team.Orchestrator.CreateBoardTask(orchestration.BoardTask{Title: "wire team"})
+	if err != nil {
+		t.Fatalf("create board task: %v", err)
+	}
+	tasks, err := team.Orchestrator.Board.ListTasks()
+	if err != nil {
+		t.Fatalf("list board tasks: %v", err)
+	}
+	if len(tasks) != 1 || tasks[0].ID != task.ID {
+		t.Fatalf("unexpected tasks: %+v", tasks)
 	}
 }
 

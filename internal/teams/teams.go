@@ -11,6 +11,7 @@ import (
 	"mewcode/internal/agent"
 	"mewcode/internal/conversation"
 	"mewcode/internal/llm"
+	"mewcode/internal/orchestration"
 	"mewcode/internal/tools"
 )
 
@@ -42,21 +43,50 @@ type Member struct {
 }
 
 type Team struct {
-	Name    string
-	Mode    TeamMode
-	Members map[string]*Member
-	MailBox *FileMailBox
-	mu      sync.Mutex
+	Name         string
+	Mode         TeamMode
+	Members      map[string]*Member
+	MailBox      *FileMailBox
+	Orchestrator *orchestration.Orchestrator
+	mu           sync.Mutex
 }
 
 func NewTeam(name string, mode TeamMode) *Team {
-	inboxDir := filepath.Join(teamsBaseDir(), name, "inboxes")
+	teamDir := filepath.Join(teamsBaseDir(), name)
+	inboxDir := filepath.Join(teamDir, "inboxes")
+	mailbox := NewFileMailBox(inboxDir)
 	return &Team{
 		Name:    name,
 		Mode:    mode,
 		Members: make(map[string]*Member),
-		MailBox: NewFileMailBox(inboxDir),
+		MailBox: mailbox,
+		Orchestrator: &orchestration.Orchestrator{
+			TeamName: name,
+			Board:    orchestration.NewTaskBoard(filepath.Join(teamDir, "board.json")),
+			Mail:     orchestration.NewMailRouter(name, teamMailboxAdapter{box: mailbox}),
+			Sessions: orchestration.NewSessionStore(filepath.Join(teamDir, "sessions")),
+		},
 	}
+}
+
+type teamMailboxAdapter struct {
+	box *FileMailBox
+}
+
+func (a teamMailboxAdapter) Send(recipient string, msg orchestration.MailboxMessage) error {
+	return a.box.Send(recipient, FileMailMessage{
+		ID:        msg.ID,
+		Kind:      msg.Kind,
+		From:      msg.From,
+		Text:      msg.Text,
+		Timestamp: msg.Timestamp,
+		Read:      msg.Read,
+		Color:     msg.Color,
+		Summary:   msg.Summary,
+		TeamName:  msg.TeamName,
+		TaskID:    msg.TaskID,
+		Metadata:  msg.Metadata,
+	})
 }
 
 func (t *Team) AddMember(name string, client llm.Client, registry *tools.Registry, protocol string) *Member {
