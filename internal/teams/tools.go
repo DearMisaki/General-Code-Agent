@@ -126,10 +126,12 @@ When in doubt about whether a task warrants a team, prefer spawning a team.
 ## Team Workflow
 
 1. **Create a team** with TeamCreate
-2. **Spawn teammates** using the Agent tool with team_name and name parameters — this is REQUIRED to create long-running team members
-3. Teammates work independently and communicate via **SendMessage**
-4. When a teammate finishes, it sends its result to "lead" via SendMessage, then goes idle
-5. The lead collects and synthesizes all teammate results
+2. Use **TaskCreate** to put durable work items on the shared task board when multiple agents need ownership, dependencies, or review state
+3. **Spawn teammates** using the Agent tool with team_name and name parameters — this is REQUIRED to create long-running team members
+4. Teammates use **TaskClaim** and **TaskUpdate** to coordinate shared task board state
+5. Teammates work independently and communicate via **SendMessage**
+6. When a teammate finishes, it sends its result to "lead" via SendMessage, then goes idle
+7. The lead collects and synthesizes all teammate results
 
 ## CRITICAL: Spawning Teammates
 

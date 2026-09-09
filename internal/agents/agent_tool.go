@@ -99,6 +99,11 @@ func (t *AgentTool) Category() tools.ToolCategory { return tools.CategoryCommand
 func (t *AgentTool) Description() string {
 	desc := `Launch a sub-agent to handle a complex task. Each sub-agent runs independently with its own context. The sub-agent cannot see the current conversation.
 
+Collaboration modes:
+- Without team_name: one-shot parent-child delegation. The parent gives a complete task prompt; the child returns a result inline or through a background task notification.
+- With team_name and name: long-running peer teammate. The teammate persists under the team and communicates through SendMessage/file mailbox.
+- With TeamCreate plus TaskCreate/TaskClaim/TaskUpdate: shared task board coordination. Use this when multiple teammates need durable ownership, status, dependencies, or review handoff.
+
 This is ONE tool with multiple roles. Roles are NOT separate tools — you pick one by passing its name in the "subagent_type" parameter. Do not search for a tool named after a role; call THIS tool ("Agent") and set "subagent_type".
 
 Available roles for the "subagent_type" parameter:`

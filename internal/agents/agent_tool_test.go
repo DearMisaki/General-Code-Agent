@@ -42,6 +42,19 @@ func TestBuildForkedConversationPreservesThinkingBlocks(t *testing.T) {
 	}
 }
 
+func TestAgentToolDescriptionExplainsCollaborationModes(t *testing.T) {
+	desc := (&AgentTool{}).Description()
+	for _, want := range []string{
+		"one-shot parent-child delegation",
+		"long-running peer teammate",
+		"shared task board",
+	} {
+		if !strings.Contains(desc, want) {
+			t.Fatalf("description missing %q:\n%s", want, desc)
+		}
+	}
+}
+
 func TestDeriveSubAgentCheckerOverrideMode(t *testing.T) {
 	// spec.PermissionMode must produce a Checker that shares the parent's Sandbox / RuleEngine but
 	// flips the Mode. Empty override → unchanged.

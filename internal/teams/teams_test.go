@@ -82,6 +82,15 @@ func TestTeamManagerCRUD(t *testing.T) {
 	}
 }
 
+func TestTeamCreateDescriptionExplainsTaskBoardWorkflow(t *testing.T) {
+	desc := (&TeamCreateTool{}).Description()
+	for _, want := range []string{"TaskCreate", "TaskClaim", "TaskUpdate", "shared task board"} {
+		if !strings.Contains(desc, want) {
+			t.Fatalf("description missing %q:\n%s", want, desc)
+		}
+	}
+}
+
 func TestNewTeamInitializesOrchestrator(t *testing.T) {
 	team := NewTeam("orchestrated", ModeInProcess)
 	if team.MailBox == nil {
