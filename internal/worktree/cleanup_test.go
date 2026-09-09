@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -51,7 +52,17 @@ func TestCleanupStaleAgentWorktrees(t *testing.T) {
 	bare := t.TempDir()
 	exec.Command("git", "init", "--bare", bare).Run()
 	exec.Command("git", "-C", repo, "remote", "add", "origin", bare).Run()
-	exec.Command("git", "-C", repo, "push", "origin", "master").Run()
+	branchOut, err := exec.Command("git", "-C", repo, "branch", "--show-current").Output()
+	if err != nil {
+		t.Fatalf("show current branch: %v", err)
+	}
+	branch := strings.TrimSpace(string(branchOut))
+	if branch == "" {
+		t.Fatal("expected current branch")
+	}
+	if out, err := exec.Command("git", "-C", repo, "push", "origin", branch).CombinedOutput(); err != nil {
+		t.Fatalf("push %s: %s", branch, out)
+	}
 
 	origDir, _ := os.Getwd()
 	defer os.Chdir(origDir)
