@@ -45,11 +45,44 @@ func TestScoreContextEvalCountsDuplicateSelectionsCorrectly(t *testing.T) {
 		{ID: "a", Rank: 2},
 	})
 
-	if score.Precision != 1 {
-		t.Fatalf("Precision = %f, want 1", score.Precision)
+	if score.Precision != 0.5 {
+		t.Fatalf("Precision = %f, want 0.5", score.Precision)
 	}
 	if score.Recall != 0.5 {
 		t.Fatalf("Recall = %f, want 0.5", score.Recall)
+	}
+}
+
+func TestScoreContextEvalUsesRankForUnsortedSelections(t *testing.T) {
+	score := ScoreContextEval(ContextEvalCase{
+		RequiredContextIDs: []string{"gold", "silver"},
+		Gains:              map[string]float64{"gold": 3, "silver": 1},
+		K:                  2,
+	}, []RankedContext{
+		{ID: "gold", Rank: 3},
+		{ID: "noise", Rank: 1},
+		{ID: "silver", Rank: 2},
+	})
+
+	if score.PrecisionAtK != 0.5 || score.RecallAtK != 0.5 {
+		t.Fatalf("at K score = %+v, want precision and recall 0.5", score)
+	}
+	if score.MRR != 0.5 {
+		t.Fatalf("MRR = %f, want 0.5", score.MRR)
+	}
+}
+
+func TestScoreContextEvalDeduplicatesNDCGSelections(t *testing.T) {
+	score := ScoreContextEval(ContextEvalCase{
+		RequiredContextIDs: []string{"gold"},
+		Gains:              map[string]float64{"gold": 3},
+	}, []RankedContext{
+		{ID: "gold", Rank: 1},
+		{ID: "gold", Rank: 2},
+	})
+
+	if score.NDCGAtK != 1 {
+		t.Fatalf("NDCGAtK = %f, want 1 after deduplicating selections", score.NDCGAtK)
 	}
 }
 

@@ -36,12 +36,11 @@ func ScoreContextEval(tc ContextEvalCase, selected []RankedContext) ContextEvalS
 	score := ContextEvalScore{CaseID: tc.CaseID}
 	required := stringSet(tc.RequiredContextIDs)
 	forbidden := stringSet(tc.ForbiddenContextIDs)
+	ordered := rankSelections(selected)
 
-	relevantCount := 0
 	seenRelevant := make(map[string]struct{})
-	for _, context := range selected {
+	for _, context := range ordered {
 		if _, ok := required[context.ID]; ok {
-			relevantCount++
 			seenRelevant[context.ID] = struct{}{}
 		}
 		if _, ok := forbidden[context.ID]; ok {
@@ -49,38 +48,53 @@ func ScoreContextEval(tc ContextEvalCase, selected []RankedContext) ContextEvalS
 		}
 	}
 
-	score.Precision = ratio(relevantCount, len(selected))
+	score.Precision = ratio(len(seenRelevant), len(ordered))
 	score.Recall = ratio(len(seenRelevant), len(required))
 	score.F1 = f1(score.Precision, score.Recall)
 
 	k := tc.K
-	if k <= 0 || k > len(selected) {
-		k = len(selected)
+	if k <= 0 || k > len(ordered) {
+		k = len(ordered)
 	}
-	topK := selected[:k]
-	topKRelevant := 0
+	topK := ordered[:k]
 	topKSeenRelevant := make(map[string]struct{})
 	for _, context := range topK {
 		if _, ok := required[context.ID]; ok {
-			topKRelevant++
 			topKSeenRelevant[context.ID] = struct{}{}
 		}
 	}
-	score.PrecisionAtK = ratio(topKRelevant, len(topK))
+	score.PrecisionAtK = ratio(len(topKSeenRelevant), len(topK))
 	score.RecallAtK = ratio(len(topKSeenRelevant), len(required))
 
-	for position, context := range selected {
+	for _, context := range ordered {
 		if _, ok := required[context.ID]; ok {
-			rank := context.Rank
-			if rank <= 0 {
-				rank = position + 1
-			}
-			score.MRR = 1.0 / float64(rank)
+			score.MRR = 1.0 / float64(context.Rank)
 			break
 		}
 	}
 	score.NDCGAtK = ndcgAtK(tc, topK, required)
 	return score
+}
+
+func rankSelections(selected []RankedContext) []RankedContext {
+	ordered := append([]RankedContext(nil), selected...)
+	maxRank := 0
+	for _, context := range ordered {
+		if context.Rank > maxRank {
+			maxRank = context.Rank
+		}
+	}
+	nextFallbackRank := maxRank + 1
+	for index := range ordered {
+		if ordered[index].Rank <= 0 {
+			ordered[index].Rank = nextFallbackRank
+			nextFallbackRank++
+		}
+	}
+	sort.SliceStable(ordered, func(i, j int) bool {
+		return ordered[i].Rank < ordered[j].Rank
+	})
+	return ordered
 }
 
 func stringSet(values []string) map[string]struct{} {
@@ -117,7 +131,16 @@ func ndcgAtK(tc ContextEvalCase, selected []RankedContext, required map[string]s
 	}
 
 	dcg := 0.0
-	for position, context := range selected {
+	uniqueSelected := make([]RankedContext, 0, len(selected))
+	seenIDs := make(map[string]struct{}, len(selected))
+	for _, context := range selected {
+		if _, seen := seenIDs[context.ID]; seen {
+			continue
+		}
+		seenIDs[context.ID] = struct{}{}
+		uniqueSelected = append(uniqueSelected, context)
+	}
+	for position, context := range uniqueSelected {
 		dcg += gain(context.ID) / math.Log2(float64(position+2))
 	}
 
@@ -134,8 +157,8 @@ func ndcgAtK(tc ContextEvalCase, selected []RankedContext, required map[string]s
 		}
 	}
 	sort.Sort(sort.Reverse(sort.Float64Slice(idealGains)))
-	if len(idealGains) > len(selected) {
-		idealGains = idealGains[:len(selected)]
+	if len(idealGains) > len(uniqueSelected) {
+		idealGains = idealGains[:len(uniqueSelected)]
 	}
 	idcg := 0.0
 	for position, value := range idealGains {
