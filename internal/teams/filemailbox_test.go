@@ -2,8 +2,10 @@ package teams
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 )
 
@@ -71,6 +73,40 @@ func TestFileMailBoxReadUnread(t *testing.T) {
 	unread, err := mb.ReadUnread("bob")
 	if err != nil || len(unread) != 2 {
 		t.Fatalf("Expected 2 unread, got %d, err=%v", len(unread), err)
+	}
+}
+
+func TestFileMailBoxConcurrentSendsNoLossOrCorruption(t *testing.T) {
+	mb := NewFileMailBox(filepath.Join(t.TempDir(), "inboxes"))
+	const senders = 20
+	const perSender = 50
+	var wg sync.WaitGroup
+	for s := 0; s < senders; s++ {
+		wg.Add(1)
+		go func(s int) {
+			defer wg.Done()
+			for i := 0; i < perSender; i++ {
+				id := fmt.Sprintf("sender-%02d-msg-%02d", s, i)
+				if err := mb.Send("agent-a", FileMailMessage{ID: id, From: fmt.Sprintf("sender-%02d", s), Text: id}); err != nil {
+					t.Errorf("Send(%s): %v", id, err)
+				}
+			}
+		}(s)
+	}
+	wg.Wait()
+	msgs, err := mb.ReadUnread("agent-a")
+	if err != nil {
+		t.Fatalf("ReadUnread() = %v", err)
+	}
+	if len(msgs) != senders*perSender {
+		t.Fatalf("messages = %d, want %d", len(msgs), senders*perSender)
+	}
+	seen := map[string]bool{}
+	for _, msg := range msgs {
+		if seen[msg.ID] {
+			t.Fatalf("duplicate message id %q", msg.ID)
+		}
+		seen[msg.ID] = true
 	}
 }
 

@@ -106,8 +106,9 @@ func TestTaskBoardConcurrentClaimHasOneWinner(t *testing.T) {
 	for owner := range winners {
 		got = append(got, owner)
 	}
-	if len(got) != 1 {
-		t.Fatalf("got winners %v, want exactly one", got)
+	successes := len(got)
+	if successes != 1 {
+		t.Fatalf("successful claims = %d, want exactly 1", successes)
 	}
 	stored, ok, err := board.GetTask(task.ID)
 	if err != nil || !ok {
