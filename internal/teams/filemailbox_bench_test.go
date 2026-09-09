@@ -5,8 +5,9 @@ import (
 	"path/filepath"
 	"sync/atomic"
 	"testing"
-	"time"
 )
+
+const benchmarkMailboxTimestamp = "2026-09-09T00:00:00.000000000Z"
 
 func BenchmarkFileMailBoxSend(b *testing.B) {
 	mb := NewFileMailBox(filepath.Join(b.TempDir(), "inboxes"))
@@ -16,7 +17,7 @@ func BenchmarkFileMailBoxSend(b *testing.B) {
 			ID:        fmt.Sprintf("msg-%d", i),
 			From:      "lead",
 			Text:      "benchmark message",
-			Timestamp: time.Now().UTC().Format(time.RFC3339Nano),
+			Timestamp: benchmarkMailboxTimestamp,
 		})
 		if err != nil {
 			b.Fatal(err)
@@ -31,7 +32,7 @@ func BenchmarkFileMailBoxSendParallel(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			id := ids.Add(1)
-			if err := mb.Send(fmt.Sprintf("agent-%d", id), FileMailMessage{ID: fmt.Sprintf("msg-%d", id), From: "lead", Text: "x"}); err != nil {
+			if err := mb.Send("agent-a", FileMailMessage{ID: fmt.Sprintf("msg-%d", id), From: "lead", Text: "x", Timestamp: benchmarkMailboxTimestamp}); err != nil {
 				b.Fatal(err)
 			}
 		}
@@ -60,12 +61,14 @@ func BenchmarkFileMailBoxMarkAllRead(b *testing.B) {
 	for _, count := range []int{10, 1000, 10000} {
 		b.Run(fmt.Sprintf("messages_%d", count), func(b *testing.B) {
 			mb := NewFileMailBox(filepath.Join(b.TempDir(), "inboxes"))
-			if err := seedMailboxBenchmarkMessages(mb, count); err != nil {
-				b.Fatal(err)
-			}
 			b.ReportAllocs()
 			b.ResetTimer()
 			for i := 0; i < b.N; i++ {
+				b.StopTimer()
+				if err := seedMailboxBenchmarkMessages(mb, count); err != nil {
+					b.Fatal(err)
+				}
+				b.StartTimer()
 				if err := mb.MarkAllRead("agent-a"); err != nil {
 					b.Fatal(err)
 				}
@@ -77,7 +80,7 @@ func BenchmarkFileMailBoxMarkAllRead(b *testing.B) {
 func seedMailboxBenchmarkMessages(mb *FileMailBox, count int) error {
 	messages := make([]FileMailMessage, count)
 	for i := range messages {
-		messages[i] = FileMailMessage{ID: fmt.Sprintf("seed-%d", i), From: "lead", Text: "x"}
+		messages[i] = FileMailMessage{ID: fmt.Sprintf("seed-%d", i), From: "lead", Text: "x", Timestamp: benchmarkMailboxTimestamp}
 	}
 	return mb.writeInbox("agent-a", messages)
 }
