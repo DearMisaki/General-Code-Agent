@@ -43,3 +43,29 @@
 ## Concerns
 
 - `MaxAllowedMessages` is represented as required but is not used in scoring because the brief specifies no behavior for it.
+
+## Fix Round 1
+
+### Findings addressed
+
+- Fixed expected tool-argument matching so an expected key must exist in the observed argument map, including when its expected value is an empty string.
+- Added focused coverage for:
+  - missing observed keys with expected empty-string values;
+  - wildcard behavior for empty expected message fields;
+  - partial collaboration completion from task transitions;
+  - the loop threshold of more than two identical messages;
+  - one-to-one duplicate tool matching.
+
+### Command output
+
+- `env GOCACHE=/private/tmp/mewcode-task6-fix-gocache go test ./internal/evals -run TestScoreTeammateEval -count=1`
+
+  `ok   mewcode/internal/evals  0.305s`
+
+- `env GOCACHE=/private/tmp/mewcode-task6-fix-gocache go test ./internal/evals -count=1`
+
+  `ok   mewcode/internal/evals  0.193s`
+
+### TDD evidence
+
+The new missing-key regression test failed before the production change with a false `ToolPrecision: 1` and `ToolRecall: 1`. After the two-value lookup fix, the focused suite passed. The remaining focused tests passed alongside it and lock down the requested matching rules.

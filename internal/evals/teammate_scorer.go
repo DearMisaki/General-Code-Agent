@@ -84,7 +84,8 @@ func toolMatches(expected, observed ObservedToolCall) bool {
 		return false
 	}
 	for key, value := range expected.Args {
-		if observed.Args[key] != value {
+		got, ok := observed.Args[key]
+		if !ok || got != value {
 			return false
 		}
 	}
