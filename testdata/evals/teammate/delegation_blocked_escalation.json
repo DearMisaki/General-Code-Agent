@@ -1,0 +1,15 @@
+{
+  "case_id": "team_delegation_blocked_escalation_001",
+  "mode": "delegation",
+  "expected_tool_calls": [
+    {"name": "Agent", "args": {"subagent_type": "general-purpose"}},
+    {"name": "SendMessage", "args": {"to": "lead"}}
+  ],
+  "expected_messages": [
+    {"from": "worker", "to": "lead", "task_id": "blocked-1"}
+  ],
+  "expected_task_transitions": [
+    {"task_id": "blocked-1", "from_status": "in_progress", "to_status": "blocked"}
+  ],
+  "max_allowed_messages": 4
+}

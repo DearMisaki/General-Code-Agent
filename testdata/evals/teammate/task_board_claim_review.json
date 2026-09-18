@@ -1,0 +1,17 @@
+{
+  "case_id": "team_task_board_claim_review_001",
+  "mode": "task_board",
+  "expected_tool_calls": [
+    {"name": "TaskCreate", "args": {"team_name": "alpha"}},
+    {"name": "TaskClaim", "args": {"task_id": "task-review-1"}},
+    {"name": "TaskUpdate", "args": {"status": "review"}}
+  ],
+  "expected_messages": [
+    {"from": "worker", "to": "reviewer", "task_id": "task-review-1"}
+  ],
+  "expected_task_transitions": [
+    {"task_id": "task-review-1", "from_status": "open", "to_status": "claimed"},
+    {"task_id": "task-review-1", "from_status": "in_progress", "to_status": "review"}
+  ],
+  "max_allowed_messages": 9
+}

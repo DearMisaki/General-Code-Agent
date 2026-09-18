@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"mewcode/internal/memory"
 	"mewcode/internal/orchestration"
 )
 
@@ -248,6 +249,79 @@ func TestTaskBoardToolsCreateClaimAndComplete(t *testing.T) {
 	}
 	if len(msgs) == 0 || msgs[len(msgs)-1].Kind != string(orchestration.MailKindBoardUpdate) {
 		t.Fatalf("missing board update message: %+v", msgs)
+	}
+}
+
+func TestTaskUpdateDoneCreatesTaskSummaryMemory(t *testing.T) {
+	tm := NewTeamManager()
+	team := tm.CreateTeam("memory-board", ModeInProcess)
+	team.AddMember("alice", nil, nil, "")
+	store := memory.NewLocalMemoryStore()
+	team.MemoryPipeline = memory.NewMemoryWritePipeline(memory.MemoryWritePipelineOptions{
+		Store:   store,
+		Policy:  memory.NewMemoryPolicyFilter(memory.PolicyOptions{MinConfidence: 0.75}),
+		Deduper: memory.NewDeduper(store, memory.DedupeOptions{}),
+	})
+
+	create := (&TaskCreateTool{TeamMgr: tm}).Execute(context.Background(), map[string]any{
+		"team_name": "memory-board",
+		"title":     "write memory tests",
+	})
+	if create.IsError {
+		t.Fatalf("create errored: %s", create.Output)
+	}
+	tasks, _ := team.Orchestrator.Board.ListTasks()
+	if claim := (&TaskClaimTool{TeamMgr: tm}).Execute(context.Background(), map[string]any{
+		"team_name":  "memory-board",
+		"task_id":    tasks[0].ID,
+		"agent_name": "alice",
+	}); claim.IsError {
+		t.Fatalf("claim errored: %s", claim.Output)
+	}
+	update := (&TaskUpdateTool{TeamMgr: tm}).Execute(context.Background(), map[string]any{
+		"team_name":  "memory-board",
+		"task_id":    tasks[0].ID,
+		"agent_name": "alice",
+		"status":     string(orchestration.BoardTaskDone),
+		"result":     "memory tests passed",
+	})
+	if update.IsError {
+		t.Fatalf("update errored: %s", update.Output)
+	}
+
+	memories, err := store.GetAll(context.Background(), memory.MemoryFilters{TeamName: "memory-board"}, memory.MemoryPage{})
+	if err != nil {
+		t.Fatalf("GetAll() = %v", err)
+	}
+	if memories.Count != 1 || memories.Results[0].Kind != memory.KindTaskSummary {
+		t.Fatalf("memories = %+v, want one task summary", memories.Results)
+	}
+	if memories.Results[0].Scope != memory.ScopeTeam || memories.Results[0].TaskID != tasks[0].ID {
+		t.Fatalf("memory scope/task = %+v", memories.Results[0])
+	}
+}
+
+func TestTeamCreateToolAttachesMemoryPipeline(t *testing.T) {
+	tm := NewTeamManager()
+	store := memory.NewLocalMemoryStore()
+	pipeline := memory.NewMemoryWritePipeline(memory.MemoryWritePipelineOptions{Store: store})
+	tool := &TeamCreateTool{
+		TeamMgr: tm,
+		MemoryPipelineProvider: func() *memory.MemoryWritePipeline {
+			return pipeline
+		},
+	}
+
+	result := tool.Execute(context.Background(), map[string]any{"team_name": "memory-team"})
+	if result.IsError {
+		t.Fatalf("TeamCreateTool.Execute() error: %s", result.Output)
+	}
+	team := tm.GetTeam("memory-team")
+	if team == nil {
+		t.Fatal("team was not created")
+	}
+	if team.MemoryPipeline != pipeline {
+		t.Fatal("created team did not receive memory pipeline")
 	}
 }
 

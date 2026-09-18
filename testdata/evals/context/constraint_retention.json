@@ -1,5 +1,27 @@
 {
   "case_id": "ctx_constraint_retention_001",
+  "query": "当前修改上下文评估模块时，需要遵守哪些约束？",
+  "memory_seeds": [
+    {
+      "id": "constraint_no_tui",
+      "memory": "用户明确要求：阅读代码时不用阅读 TUI 相关代码，除非任务必须。",
+      "scope": "project",
+      "kind": "constraint"
+    },
+    {
+      "id": "constraint_no_revert",
+      "memory": "项目约束：不要回滚用户已有改动，不要执行破坏性 git reset。",
+      "scope": "project",
+      "kind": "constraint"
+    },
+    {
+      "id": "stale_goal_old_feature",
+      "memory": "历史目标：重构 TUI 页面布局。",
+      "scope": "project",
+      "kind": "event"
+    }
+  ],
+  "expected_answer_contains": ["TUI", "不回滚"],
   "required_context_ids": ["constraint_no_tui", "constraint_no_revert"],
   "forbidden_context_ids": ["stale_goal_old_feature"],
   "required_constraints": ["不阅读 TUI 相关代码", "不回滚用户改动"],

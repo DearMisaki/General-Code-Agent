@@ -1,0 +1,15 @@
+{
+  "case_id": "team_peer_research_synthesis_001",
+  "mode": "peer",
+  "expected_tool_calls": [
+    {"name": "TeamCreate", "args": {"team_name": "research"}},
+    {"name": "SendMessage", "args": {"to": "searcher"}},
+    {"name": "SendMessage", "args": {"to": "synthesizer"}}
+  ],
+  "expected_messages": [
+    {"from": "searcher", "to": "synthesizer", "task_id": "research-1"},
+    {"from": "synthesizer", "to": "lead", "task_id": "research-1"}
+  ],
+  "expected_task_transitions": [],
+  "max_allowed_messages": 7
+}

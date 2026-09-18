@@ -1,0 +1,18 @@
+{
+  "case_id": "team_task_board_failure_recovery_001",
+  "mode": "task_board",
+  "expected_tool_calls": [
+    {"name": "TaskClaim", "args": {"task_id": "task-recover-1"}},
+    {"name": "TaskUpdate", "args": {"status": "blocked"}},
+    {"name": "TaskUpdate", "args": {"status": "done"}}
+  ],
+  "expected_messages": [
+    {"from": "worker", "to": "lead", "task_id": "task-recover-1"},
+    {"from": "lead", "to": "worker", "task_id": "task-recover-1"}
+  ],
+  "expected_task_transitions": [
+    {"task_id": "task-recover-1", "from_status": "in_progress", "to_status": "blocked"},
+    {"task_id": "task-recover-1", "from_status": "blocked", "to_status": "done"}
+  ],
+  "max_allowed_messages": 10
+}

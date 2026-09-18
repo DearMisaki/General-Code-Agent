@@ -1,0 +1,15 @@
+{
+  "case_id": "team_delegation_review_handoff_001",
+  "mode": "delegation",
+  "expected_tool_calls": [
+    {"name": "Agent", "args": {"subagent_type": "review", "description": "review implementation"}},
+    {"name": "SendMessage", "args": {"to": "lead"}}
+  ],
+  "expected_messages": [
+    {"from": "reviewer", "to": "lead", "task_id": "review-1"}
+  ],
+  "expected_task_transitions": [
+    {"task_id": "review-1", "from_status": "in_progress", "to_status": "review"}
+  ],
+  "max_allowed_messages": 6
+}

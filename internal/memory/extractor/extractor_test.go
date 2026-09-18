@@ -51,9 +51,9 @@ type mockTool struct {
 	exec func(args map[string]any) tools.ToolResult
 }
 
-func (t *mockTool) Name() string                  { return t.name }
-func (t *mockTool) Description() string           { return "mock " + t.name }
-func (t *mockTool) Category() tools.ToolCategory  { return t.cat }
+func (t *mockTool) Name() string                 { return t.name }
+func (t *mockTool) Description() string          { return "mock " + t.name }
+func (t *mockTool) Category() tools.ToolCategory { return t.cat }
 func (t *mockTool) Schema() map[string]any {
 	return map[string]any{
 		"name":         t.name,
@@ -308,6 +308,172 @@ func TestExtractorSkipsWhenMainAgentWroteMemory(t *testing.T) {
 	}
 	if e.lastMemoryMessageIdx != len(parent.GetMessages()) {
 		t.Errorf("cursor must advance past direct-write range: got %d", e.lastMemoryMessageIdx)
+	}
+}
+
+func TestExtractorCandidateModeWritesPipeline(t *testing.T) {
+	tmp := t.TempDir()
+	memDir := memory.GetAutoMemPath(tmp)
+	if err := os.MkdirAll(memDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	parent := conversation.NewManager()
+	parent.AddUserMessage("Remember that the mem0 design was approved.")
+	parent.AddAssistantMessage("Recorded.")
+
+	client := &mockClient{handlers: []func([]conversation.Message) []llm.StreamEvent{
+		func(_ []conversation.Message) []llm.StreamEvent {
+			return []llm.StreamEvent{
+				llm.TextDelta{Text: `{"candidates":[{"scope":"project","kind":"project_fact","memory":"User approved the mem0 long-term memory design.","confidence":0.9,"project_id":"proj"}]}`},
+				llm.StreamEnd{StopReason: "end_turn"},
+			}
+		},
+	}}
+	store := memory.NewLocalMemoryStore()
+	pipeline := memory.NewMemoryWritePipeline(memory.MemoryWritePipelineOptions{
+		Store:   store,
+		Policy:  memory.NewMemoryPolicyFilter(memory.PolicyOptions{MinConfidence: 0.75}),
+		Deduper: memory.NewDeduper(store, memory.DedupeOptions{}),
+	})
+	deps := Deps{
+		MemoryDir:       memDir,
+		ProjectRoot:     tmp,
+		Client:          client,
+		ToolRegistry:    tools.NewRegistry(),
+		Protocol:        "anthropic",
+		Conversation:    parent,
+		CandidateMode:   true,
+		WritePipeline:   pipeline,
+		ExtractionScope: MemoryExtractionScope{ProjectID: "proj"},
+	}
+
+	e := InitExtractMemories(deps)
+	if err := e.Execute(context.Background()); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	memories, err := store.GetAll(context.Background(), memory.MemoryFilters{ProjectID: "proj"}, memory.MemoryPage{})
+	if err != nil {
+		t.Fatalf("GetAll() = %v", err)
+	}
+	if memories.Count != 1 || !strings.Contains(memories.Results[0].Memory, "mem0 long-term memory design") {
+		t.Fatalf("stored memories = %+v", memories.Results)
+	}
+}
+
+func TestExtractorCandidateModeDoesNotExposeMemoryFileToolsOrUserDir(t *testing.T) {
+	tmp := t.TempDir()
+	memDir := memory.GetAutoMemPath(tmp)
+	userMemDir := filepath.Join(tmp, "user-memory") + string(os.PathSeparator)
+	if err := os.MkdirAll(memDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(userMemDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	parent := conversation.NewManager()
+	parent.AddUserMessage("记住：以后你是 xyz。")
+	parent.AddAssistantMessage("好的。")
+
+	var gotPrompt string
+	var gotToolNames []string
+	client := &mockClient{handlers: []func([]conversation.Message) []llm.StreamEvent{
+		func(msgs []conversation.Message) []llm.StreamEvent {
+			gotPrompt = msgs[len(msgs)-1].Content
+			return []llm.StreamEvent{
+				llm.TextDelta{Text: `{"candidates":[]}`},
+				llm.StreamEnd{StopReason: "end_turn"},
+			}
+		},
+	}}
+	registry := tools.NewRegistry()
+	for _, tool := range []tools.Tool{
+		&mockTool{name: "ReadFile", cat: tools.CategoryRead},
+		&mockTool{name: "WriteFile", cat: tools.CategoryWrite},
+		&mockTool{name: "EditFile", cat: tools.CategoryWrite},
+		&mockTool{name: "Bash", cat: tools.CategoryCommand},
+	} {
+		registry.Register(tool)
+	}
+	origFilter := filterToolsForAgent
+	filterToolsForAgent = func(reg *tools.Registry, allow []string, deny []string, async bool) *tools.Registry {
+		filtered := origFilter(reg, allow, deny, async)
+		for _, tool := range filtered.ListTools() {
+			gotToolNames = append(gotToolNames, tool.Name())
+		}
+		return filtered
+	}
+	defer func() { filterToolsForAgent = origFilter }()
+
+	e := InitExtractMemories(Deps{
+		MemoryDir:     memDir,
+		UserMemoryDir: userMemDir,
+		ProjectRoot:   tmp,
+		Client:        client,
+		ToolRegistry:  registry,
+		Protocol:      "anthropic",
+		Conversation:  parent,
+		CandidateMode: true,
+	})
+	if err := e.Execute(context.Background()); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	if strings.Contains(gotPrompt, userMemDir) {
+		t.Fatalf("candidate prompt should not include user memory dir: %s", gotPrompt)
+	}
+	for _, name := range gotToolNames {
+		if name == "WriteFile" || name == "EditFile" || name == "Bash" {
+			t.Fatalf("candidate mode exposed write-capable tool %q in %v", name, gotToolNames)
+		}
+	}
+}
+
+func TestExtractorCandidateModeAuditsZeroCandidates(t *testing.T) {
+	tmp := t.TempDir()
+	memDir := memory.GetAutoMemPath(tmp)
+	if err := os.MkdirAll(memDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	parent := conversation.NewManager()
+	parent.AddUserMessage("hello")
+	parent.AddAssistantMessage("hi")
+	client := &mockClient{handlers: []func([]conversation.Message) []llm.StreamEvent{
+		func(_ []conversation.Message) []llm.StreamEvent {
+			return []llm.StreamEvent{
+				llm.TextDelta{Text: `{"candidates":[]}`},
+				llm.StreamEnd{StopReason: "end_turn"},
+			}
+		},
+	}}
+	auditPath := filepath.Join(tmp, "audit.jsonl")
+	e := InitExtractMemories(Deps{
+		MemoryDir:     memDir,
+		ProjectRoot:   tmp,
+		Client:        client,
+		ToolRegistry:  tools.NewRegistry(),
+		Protocol:      "anthropic",
+		Conversation:  parent,
+		CandidateMode: true,
+		Audit:         memory.NewMemoryAuditWriter(auditPath),
+	})
+
+	if err := e.Execute(context.Background()); err != nil {
+		t.Fatalf("Execute returned error: %v", err)
+	}
+	records, err := memory.ListMemoryAuditRecords(auditPath)
+	if err != nil {
+		t.Fatalf("ListMemoryAuditRecords() = %v", err)
+	}
+	var started, completed bool
+	for _, record := range records {
+		if record.Event == memory.EventMemoryExtractStarted {
+			started = true
+		}
+		if record.Event == memory.EventMemoryExtractCompleted && record.Metadata["candidates"] == "0" {
+			completed = true
+		}
+	}
+	if !started || !completed {
+		t.Fatalf("missing extraction audit records: %+v", records)
 	}
 }
 

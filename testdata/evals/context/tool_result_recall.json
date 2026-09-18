@@ -1,5 +1,27 @@
 {
   "case_id": "ctx_tool_result_recall_001",
+  "query": "继续处理工具结果时，应该恢复哪些最近的有效工具发现？",
+  "memory_seeds": [
+    {
+      "id": "tool_result_recall_001",
+      "memory": "最近有效工具发现：cmd/mew-eval/main.go 当前负责 eval CLI 参数解析和 JSONL 输出。",
+      "scope": "project",
+      "kind": "project_fact"
+    },
+    {
+      "id": "tool_result_recall_002",
+      "memory": "最近有效工具发现：internal/evals/context_scorer.go 负责 precision、recall、F1、MRR、NDCG 评分。",
+      "scope": "project",
+      "kind": "project_fact"
+    },
+    {
+      "id": "stale_tool_result_001",
+      "memory": "过期工具发现：旧版本没有 cmd/mew-eval。",
+      "scope": "project",
+      "kind": "event"
+    }
+  ],
+  "expected_answer_contains": ["cmd/mew-eval", "context_scorer"],
   "required_context_ids": ["tool_result_recall_001", "tool_result_recall_002"],
   "forbidden_context_ids": ["stale_tool_result_001"],
   "k": 3

@@ -1,0 +1,40 @@
+{
+  "case_id": "ctx_compaction_recovery_recall_001",
+  "query": "如果会话压缩后继续实现评估模块，需要恢复哪些关键信息？",
+  "memory_seeds": [
+    {
+      "id": "compact_summary_current_goal",
+      "memory": "压缩摘要应保留当前目标：实现 context live eval，并显式调用 LLM 和 mem0。",
+      "scope": "session",
+      "kind": "task_summary"
+    },
+    {
+      "id": "compact_summary_open_blocker",
+      "memory": "压缩摘要应保留未解决 blocker：mem0 搜索必须包含 user_id、agent_id、app_id 或 run_id 等正向 scope。",
+      "scope": "session",
+      "kind": "constraint"
+    },
+    {
+      "id": "compact_summary_recent_decision",
+      "memory": "近期设计决策：默认 smoke runner 不联网，只有 --runner live 才调用外部服务。",
+      "scope": "session",
+      "kind": "architecture_decision"
+    },
+    {
+      "id": "compact_summary_closed_task",
+      "memory": "已关闭任务：早期 config 模版已经写完，不应作为当前目标。",
+      "scope": "session",
+      "kind": "event"
+    }
+  ],
+  "expected_answer_contains": ["--runner live", "正向 scope"],
+  "required_context_ids": ["compact_summary_current_goal", "compact_summary_open_blocker", "compact_summary_recent_decision"],
+  "forbidden_context_ids": ["compact_summary_closed_task"],
+  "required_constraints": ["压缩后仍保留当前目标", "压缩后仍保留未解决 blocker"],
+  "gains": {
+    "compact_summary_current_goal": 3,
+    "compact_summary_open_blocker": 3,
+    "compact_summary_recent_decision": 2
+  },
+  "k": 5
+}

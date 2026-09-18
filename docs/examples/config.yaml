@@ -82,6 +82,35 @@ hooks:
       command: "printf 'mewcode session started\n'"
     on_error: ignore
 
+# Optional long-term memory. The first implementation keeps local markdown
+# memory as fallback and uses mem0 only through internal/memory store wrappers.
+memory:
+  long_term:
+    enabled: false
+    # Use "local" for tests/fallback or "mem0-platform" for mem0 Platform API.
+    backend: local
+    app_id: mewcode
+    project_id_strategy: git_remote_or_root_hash
+    write_mode: async
+    markdown_mirror: true
+    # Optional. If omitted, MEM0_API_KEY is used.
+    api_key: ""
+    # Optional. If omitted, https://api.mem0.ai is used.
+    base_url: ""
+    extraction:
+      enabled: true
+      trigger: every_turn
+      min_confidence: 0.75
+      max_candidates_per_run: 20
+      drain_timeout_ms: 60000
+    recall:
+      enabled: true
+      top_k: 12
+      threshold: 0.1
+      rerank: true
+      token_budget: 2500
+      exclude_recently_surfaced: true
+
   - id: block-dangerous-rm
     event: pre_tool_use
     if: "tool == 'Bash' && args.command contains 'rm -rf'"

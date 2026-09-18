@@ -6,12 +6,42 @@ import (
 )
 
 type ContextEvalCase struct {
-	CaseID              string             `json:"case_id"`
-	RequiredContextIDs  []string           `json:"required_context_ids"`
-	ForbiddenContextIDs []string           `json:"forbidden_context_ids"`
-	RequiredConstraints []string           `json:"required_constraints"`
-	Gains               map[string]float64 `json:"gains,omitempty"`
-	K                   int                `json:"k,omitempty"`
+	CaseID                 string             `json:"case_id"`
+	RequiredContextIDs     []string           `json:"required_context_ids"`
+	ForbiddenContextIDs    []string           `json:"forbidden_context_ids"`
+	RequiredConstraints    []string           `json:"required_constraints"`
+	Gains                  map[string]float64 `json:"gains,omitempty"`
+	K                      int                `json:"k,omitempty"`
+	Query                  string             `json:"query,omitempty"`
+	Conversation           []EvalMessage      `json:"conversation,omitempty"`
+	MemorySeeds            []EvalMemorySeed   `json:"memory_seeds,omitempty"`
+	ActivePlan             []string           `json:"active_plan,omitempty"`
+	RecentTools            []string           `json:"recent_tools,omitempty"`
+	ExpectedAnswerContains []string           `json:"expected_answer_contains,omitempty"`
+	AgentID                string             `json:"agent_id,omitempty"`
+	ProjectID              string             `json:"project_id,omitempty"`
+	TokenBudget            int                `json:"token_budget,omitempty"`
+}
+
+type EvalMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
+type EvalMemorySeed struct {
+	ID        string            `json:"id"`
+	Memory    string            `json:"memory"`
+	Scope     string            `json:"scope,omitempty"`
+	Kind      string            `json:"kind,omitempty"`
+	UserID    string            `json:"user_id,omitempty"`
+	AppID     string            `json:"app_id,omitempty"`
+	ProjectID string            `json:"project_id,omitempty"`
+	AgentID   string            `json:"agent_id,omitempty"`
+	SessionID string            `json:"session_id,omitempty"`
+	RunID     string            `json:"run_id,omitempty"`
+	TeamName  string            `json:"team_name,omitempty"`
+	TaskID    string            `json:"task_id,omitempty"`
+	Metadata  map[string]string `json:"metadata,omitempty"`
 }
 
 type RankedContext struct {

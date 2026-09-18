@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"mewcode/internal/memory"
 	"mewcode/internal/orchestration"
 	"mewcode/internal/tools"
 )
@@ -106,7 +107,8 @@ func (t *SendMessageTool) Execute(ctx context.Context, args map[string]any) tool
 
 // TeamCreateTool creates a new agent team.
 type TeamCreateTool struct {
-	TeamMgr *TeamManager
+	TeamMgr                *TeamManager
+	MemoryPipelineProvider func() *memory.MemoryWritePipeline
 }
 
 func (t *TeamCreateTool) Name() string                 { return "TeamCreate" }
@@ -192,6 +194,9 @@ func (t *TeamCreateTool) Execute(ctx context.Context, args map[string]any) tools
 
 	mode := detectBackend()
 	team := t.TeamMgr.CreateTeam(name, mode)
+	if t.MemoryPipelineProvider != nil {
+		team.MemoryPipeline = t.MemoryPipelineProvider()
+	}
 
 	desc, _ := args["description"].(string)
 	return tools.ToolResult{
@@ -461,10 +466,14 @@ func (t *TaskUpdateTool) Execute(_ context.Context, args map[string]any) tools.T
 		if err := team.Orchestrator.CompleteBoardTask(taskID, actor, stringArg(args, "result")); err != nil {
 			return tools.ToolResult{Output: fmt.Sprintf("Error updating task: %s", err), IsError: true}
 		}
+		writeTaskMemory(context.Background(), team, taskID, actor, status, stringArg(args, "result"))
 		return tools.ToolResult{Output: fmt.Sprintf("Task %s updated to %s.", taskID, status)}
 	}
 	if err := team.Orchestrator.Board.UpdateTask(taskID, actor, status, stringArg(args, "message"), stringArg(args, "result")); err != nil {
 		return tools.ToolResult{Output: fmt.Sprintf("Error updating task: %s", err), IsError: true}
+	}
+	if status == orchestration.BoardTaskFailed || status == orchestration.BoardTaskReview {
+		writeTaskMemory(context.Background(), team, taskID, actor, status, firstNonEmptyString(stringArg(args, "result"), stringArg(args, "message")))
 	}
 	_ = team.Orchestrator.Mail.SendEnvelope(orchestration.MailEnvelope{
 		Kind:     orchestration.MailKindBoardUpdate,
@@ -475,6 +484,36 @@ func (t *TaskUpdateTool) Execute(_ context.Context, args map[string]any) tools.T
 		Text:     orchestration.FormatEnvelopeText(orchestration.MailEnvelope{TaskID: taskID, Text: string(status)}),
 	})
 	return tools.ToolResult{Output: fmt.Sprintf("Task %s updated to %s.", taskID, status)}
+}
+
+func writeTaskMemory(ctx context.Context, team *Team, taskID, actor string, status orchestration.BoardTaskStatus, result string) {
+	if team == nil || team.MemoryPipeline == nil || result == "" {
+		return
+	}
+	kind := memory.KindTaskSummary
+	if status == orchestration.BoardTaskReview {
+		kind = memory.KindTeamState
+	}
+	candidate := memory.MemoryCandidate{
+		Scope:      memory.ScopeTeam,
+		Kind:       kind,
+		Memory:     fmt.Sprintf("Team %q task %s was updated to %s by %s: %s", team.Name, taskID, status, actor, result),
+		Confidence: 0.9,
+		TeamName:   team.Name,
+		TaskID:     taskID,
+		RunID:      "team:" + team.Name,
+		AgentID:    actor,
+	}
+	_, _ = team.MemoryPipeline.WriteCandidates(ctx, []memory.MemoryCandidate{candidate})
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		if value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func teamWithOrchestrator(tm *TeamManager, name string) (*Team, tools.ToolResult) {

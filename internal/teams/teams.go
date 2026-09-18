@@ -11,6 +11,7 @@ import (
 	"mewcode/internal/agent"
 	"mewcode/internal/conversation"
 	"mewcode/internal/llm"
+	"mewcode/internal/memory"
 	"mewcode/internal/orchestration"
 	"mewcode/internal/tools"
 )
@@ -43,12 +44,13 @@ type Member struct {
 }
 
 type Team struct {
-	Name         string
-	Mode         TeamMode
-	Members      map[string]*Member
-	MailBox      *FileMailBox
-	Orchestrator *orchestration.Orchestrator
-	mu           sync.Mutex
+	Name           string
+	Mode           TeamMode
+	Members        map[string]*Member
+	MailBox        *FileMailBox
+	Orchestrator   *orchestration.Orchestrator
+	MemoryPipeline *memory.MemoryWritePipeline
+	mu             sync.Mutex
 }
 
 func NewTeam(name string, mode TeamMode) *Team {

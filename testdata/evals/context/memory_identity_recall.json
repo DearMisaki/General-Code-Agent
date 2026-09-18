@@ -1,0 +1,33 @@
+{
+  "case_id": "ctx_memory_identity_recall_001",
+  "query": "用户问我是谁，以及我在这个项目里的角色是什么。",
+  "memory_seeds": [
+    {
+      "id": "memory_user_identity_name",
+      "memory": "用户告诉系统：他的名字是 xyz。",
+      "scope": "user",
+      "kind": "preference"
+    },
+    {
+      "id": "memory_user_identity_role",
+      "memory": "用户在 General-Code-Agent 项目中负责上下文管理和长期记忆模块设计。",
+      "scope": "project",
+      "kind": "project_fact"
+    },
+    {
+      "id": "memory_obsolete_identity",
+      "memory": "过期信息：用户名字是 abc，这条信息已经不应使用。",
+      "scope": "user",
+      "kind": "event"
+    }
+  ],
+  "expected_answer_contains": ["xyz", "上下文管理"],
+  "required_context_ids": ["memory_user_identity_name", "memory_user_identity_role"],
+  "forbidden_context_ids": ["memory_obsolete_identity"],
+  "required_constraints": ["长期记忆应召回用户身份信息", "不得注入过期身份"],
+  "gains": {
+    "memory_user_identity_name": 3,
+    "memory_user_identity_role": 2
+  },
+  "k": 5
+}

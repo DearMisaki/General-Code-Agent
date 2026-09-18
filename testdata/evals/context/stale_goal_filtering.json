@@ -1,0 +1,35 @@
+{
+  "case_id": "ctx_stale_goal_filtering_001",
+  "query": "现在应该优先处理哪个目标？哪些历史目标不应该影响当前回答？",
+  "memory_seeds": [
+    {
+      "id": "goal_current_context_eval",
+      "memory": "当前目标：实现 context live eval，让评估真实调用 LLM 和 mem0。",
+      "scope": "project",
+      "kind": "task_summary"
+    },
+    {
+      "id": "constraint_preserve_user_changes",
+      "memory": "持续约束：工作区存在用户改动时必须保留，不要回滚无关文件。",
+      "scope": "project",
+      "kind": "constraint"
+    },
+    {
+      "id": "goal_old_tui_refactor",
+      "memory": "历史目标：调整 TUI 界面细节。该目标已经不属于当前任务。",
+      "scope": "project",
+      "kind": "event"
+    },
+    {
+      "id": "goal_old_config_template",
+      "memory": "历史目标：编写 config 模版。该目标已经完成。",
+      "scope": "project",
+      "kind": "event"
+    }
+  ],
+  "expected_answer_contains": ["context live eval", "mem0"],
+  "required_context_ids": ["goal_current_context_eval", "constraint_preserve_user_changes"],
+  "forbidden_context_ids": ["goal_old_tui_refactor", "goal_old_config_template"],
+  "required_constraints": ["当前目标应优先于历史目标", "不得回滚用户已有改动"],
+  "k": 4
+}

@@ -12,6 +12,7 @@ import (
 	"mewcode/internal/config"
 	"mewcode/internal/conversation"
 	"mewcode/internal/llm"
+	"mewcode/internal/memoryruntime"
 	"mewcode/internal/teams"
 	"mewcode/internal/tools"
 )
@@ -97,6 +98,13 @@ func runTeammate(args teammateArgs) error {
 	registry.Register(&teams.SendMessageTool{TeamMgr: teamMgr, SenderName: args.memberName})
 
 	member := team.AddMember(args.memberName, client, registry, provider.Protocol)
+	memRT, err := attachTeammateMemoryRuntime(cfg, provider, client, registry, team, member)
+	if err != nil {
+		return fmt.Errorf("attach memory runtime: %w", err)
+	}
+	defer func() {
+		_ = memRT.Drain(context.Background())
+	}()
 
 	// Worker processes get SIGINT/SIGTERM forwarded so closing the
 	// pane / Ctrl-C in the tab cleanly cancels the loop and lets
@@ -118,6 +126,46 @@ func runTeammate(args teammateArgs) error {
 	// a duplicate user message.
 	fmt.Fprintf(os.Stderr, "[teammate %s/%s] booted, awaiting tasks\n", args.teamName, args.memberName)
 	return teams.RunInProcessTeammate(ctx, team, member, "", addendum, streamEventsToStderr())
+}
+
+func attachTeammateMemoryRuntime(
+	cfg *config.AppConfig,
+	provider config.ProviderConfig,
+	client llm.Client,
+	registry *tools.Registry,
+	team *teams.Team,
+	member *teams.Member,
+) (*memoryruntime.Runtime, error) {
+	if cfg == nil || member == nil || member.AgentRef == nil {
+		return memoryruntime.Build(memoryruntime.BuildOptions{})
+	}
+	projectRoot := member.AgentRef.WorkDir
+	if projectRoot == "" {
+		projectRoot, _ = os.Getwd()
+	}
+	rt, err := memoryruntime.Build(memoryruntime.BuildOptions{
+		Config:       cfg.Memory,
+		Client:       client,
+		Registry:     registry,
+		Conversation: member.Conv,
+		ProjectRoot:  projectRoot,
+		Protocol:     provider.Protocol,
+		AgentID:      member.Name,
+		TeamName:     teamName(team),
+	})
+	if err != nil {
+		return nil, err
+	}
+	rt.AttachAgent(member.AgentRef)
+	rt.AttachTeam(team)
+	return rt, nil
+}
+
+func teamName(team *teams.Team) string {
+	if team == nil {
+		return ""
+	}
+	return team.Name
 }
 
 // builtinTeammateTools is the worker-side tool whitelist. Teammates

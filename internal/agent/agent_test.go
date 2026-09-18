@@ -12,6 +12,7 @@ import (
 	"mewcode/internal/contextmgr"
 	"mewcode/internal/conversation"
 	"mewcode/internal/llm"
+	"mewcode/internal/memory"
 	"mewcode/internal/prompt"
 	"mewcode/internal/skills"
 	"mewcode/internal/tools"
@@ -24,6 +25,16 @@ type mockClient struct {
 	responses [][]llm.StreamEvent
 	callIdx   int
 	lastConv  *conversation.Manager
+}
+
+type fakeRecallService struct {
+	rendered string
+	req      memory.RecallRequest
+}
+
+func (f *fakeRecallService) Recall(ctx context.Context, req memory.RecallRequest) (memory.RecallResult, error) {
+	f.req = req
+	return memory.RecallResult{Rendered: f.rendered}, nil
 }
 
 func (m *mockClient) Stream(ctx context.Context, conv *conversation.Manager, toolSchemas []map[string]any) (<-chan llm.StreamEvent, <-chan error) {
@@ -203,6 +214,37 @@ func TestAgentUsesContextGatewayForReminders(t *testing.T) {
 	}
 	if !strings.Contains(joined, "repo rules") || !strings.Contains(joined, "memory body") {
 		t.Fatalf("context gateway reminders missing:\n%s", joined)
+	}
+}
+
+func TestAgentInjectsRecalledMemoryBeforePrepareTurn(t *testing.T) {
+	client := &mockClient{responses: [][]llm.StreamEvent{{
+		llm.TextDelta{Text: "done"},
+		llm.StreamEnd{StopReason: "end_turn"},
+	}}}
+	recall := &fakeRecallService{rendered: "# longTermMemory\n- User prefers Chinese answers."}
+	ag := New(client, tools.NewRegistry(), "anthropic")
+	ag.MemoryRecall = recall
+	ag.SessionID = "sess"
+	ag.WorkDir = "/tmp/project"
+
+	conv := conversation.NewManager()
+	text, _ := runConversationRound(ag, conv, "How should you answer?")
+	if text != "done" {
+		t.Fatalf("text = %q", text)
+	}
+	if client.lastConv == nil {
+		t.Fatal("client did not receive conversation")
+	}
+	joined := ""
+	for _, msg := range client.lastConv.GetMessages() {
+		joined += msg.Content + "\n"
+	}
+	if !strings.Contains(joined, "User prefers Chinese answers") {
+		t.Fatalf("recalled memory missing from prompt:\n%s", joined)
+	}
+	if recall.req.UserQuery != "How should you answer?" || recall.req.ProjectID != "/tmp/project" {
+		t.Fatalf("recall request = %+v", recall.req)
 	}
 }
 

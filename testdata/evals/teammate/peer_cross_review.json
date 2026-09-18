@@ -1,0 +1,16 @@
+{
+  "case_id": "team_peer_cross_review_001",
+  "mode": "peer",
+  "expected_tool_calls": [
+    {"name": "TeamCreate", "args": {"team_name": "alpha"}},
+    {"name": "SendMessage", "args": {"to": "implementer"}},
+    {"name": "SendMessage", "args": {"to": "reviewer"}}
+  ],
+  "expected_messages": [
+    {"from": "implementer", "to": "reviewer", "task_id": "peer-review-1"},
+    {"from": "reviewer", "to": "implementer", "task_id": "peer-review-1"},
+    {"from": "reviewer", "to": "lead", "task_id": "peer-review-1"}
+  ],
+  "expected_task_transitions": [],
+  "max_allowed_messages": 8
+}

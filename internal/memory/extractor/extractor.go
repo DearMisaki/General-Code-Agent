@@ -34,15 +34,19 @@ import (
 // AppendSystem is the conduit for the "Memory saved: foo.md" notice that the user sees after a
 // successful extraction.
 type Deps struct {
-	MemoryDir     string                  // <wd>/.mewcode/memory/ — project/reference (trailing sep)
-	UserMemoryDir string                  // ~/.mewcode/memory/ — user/feedback (trailing sep); may be "" if $HOME unresolved
-	ProjectRoot   string                  // absolute project root
-	Client        llm.Client              // forked extraction agent's LLM client
-	ToolRegistry  *tools.Registry         // parent tool registry (will be filtered)
-	Protocol      string                  // "anthropic" / "openai"
-	Conversation  *conversation.Manager   // parent conversation reference
-	AppendSystem  func(string)            // optional: notify TUI of saved memories
-	DebugLogf     func(format string, args ...any) // optional: debug logging
+	MemoryDir       string                           // <wd>/.mewcode/memory/ — project/reference (trailing sep)
+	UserMemoryDir   string                           // ~/.mewcode/memory/ — user/feedback (trailing sep); may be "" if $HOME unresolved
+	ProjectRoot     string                           // absolute project root
+	Client          llm.Client                       // forked extraction agent's LLM client
+	ToolRegistry    *tools.Registry                  // parent tool registry (will be filtered)
+	Protocol        string                           // "anthropic" / "openai"
+	Conversation    *conversation.Manager            // parent conversation reference
+	AppendSystem    func(string)                     // optional: notify TUI of saved memories
+	DebugLogf       func(format string, args ...any) // optional: debug logging
+	CandidateMode   bool
+	WritePipeline   *memory.MemoryWritePipeline
+	ExtractionScope MemoryExtractionScope
+	Audit           *memory.MemoryAuditWriter
 }
 
 // Extractor is the ch09 background memory extractor. State is encapsulated in struct fields; mu
@@ -67,6 +71,8 @@ type Extractor struct {
 	turnsSinceLastExtraction int
 	pendingContext           *pendingExtractionCtx
 }
+
+var filterToolsForAgent = agents.FilterToolsForAgent
 
 // pendingExtractionCtx is the stash slot for a trailing extraction. The TS port carries (context,
 // appendSystemMessage); the Go port has all state on the Extractor itself, so the stash needs no
@@ -160,18 +166,31 @@ func (e *Extractor) runExtraction(ctx context.Context, isTrailingRun bool) error
 
 	e.deps.debugf("[extractMemories] starting — %d new messages, memoryDir=%s, userMemoryDir=%s",
 		newMessageCount, e.deps.MemoryDir, e.deps.UserMemoryDir)
+	_ = e.deps.Audit.Append(memory.MemoryAuditRecord{
+		Event:     memory.EventMemoryExtractStarted,
+		AgentID:   e.deps.ExtractionScope.AgentID,
+		TeamName:  e.deps.ExtractionScope.TeamName,
+		TaskID:    e.deps.ExtractionScope.TaskID,
+		SessionID: e.deps.ExtractionScope.SessionID,
+		Summary:   fmt.Sprintf("started memory extraction with %d new messages", newMessageCount),
+	})
 
-	// Pre-inject the memory-directory manifest so the extraction agent doesn't burn a turn on `ls`.
-	// Scans both directories so user-level and project-level memories appear in one combined manifest.
+	// Pre-inject the memory-directory manifest for the legacy markdown writer. Candidate mode writes
+	// JSON into MemoryWritePipeline and must not inherit file-memory directory behaviour.
 	var combinedScan []memory.MemoryHeader
-	if e.deps.UserMemoryDir != "" {
+	if !e.deps.CandidateMode && e.deps.UserMemoryDir != "" {
 		userScan, _ := memory.ScanMemoryFiles(ctx, e.deps.UserMemoryDir, "user")
 		combinedScan = append(combinedScan, userScan...)
 	}
-	projectScan, _ := memory.ScanMemoryFiles(ctx, e.deps.MemoryDir, "project")
-	combinedScan = append(combinedScan, projectScan...)
+	if !e.deps.CandidateMode {
+		projectScan, _ := memory.ScanMemoryFiles(ctx, e.deps.MemoryDir, "project")
+		combinedScan = append(combinedScan, projectScan...)
+	}
 	manifest := memory.FormatMemoryManifest(combinedScan)
 	extractionPrompt := BuildExtractAutoOnlyPrompt(newMessageCount, manifest, false, e.deps.UserMemoryDir, e.deps.MemoryDir)
+	if e.deps.CandidateMode {
+		extractionPrompt = BuildExtractCandidatesPrompt(newMessageCount, manifest, e.deps.ExtractionScope)
+	}
 
 	// Build the forked conversation: copy parent messages, then append the extraction prompt as a new
 	// user message. Deliberately does NOT add agents.runFork's fork boilerplate — the extractor is a
@@ -180,7 +199,12 @@ func (e *Extractor) runExtraction(ctx context.Context, isTrailingRun bool) error
 
 	// Tool whitelist: ReadFile / WriteFile / EditFile / Glob / Grep / Bash / ToolSearch (via
 	// FilterToolsForAgent's async path). Agent and AskUserQuestion are auto-excluded.
-	subRegistry := agents.FilterToolsForAgent(e.deps.ToolRegistry, nil, nil, true)
+	var subRegistry *tools.Registry
+	if e.deps.CandidateMode {
+		subRegistry = filterToolsForAgent(e.deps.ToolRegistry, []string{"ReadFile", "Glob", "Grep", "ToolSearch"}, nil, true)
+	} else {
+		subRegistry = filterToolsForAgent(e.deps.ToolRegistry, nil, nil, true)
+	}
 
 	// Strict path sandbox: only memoryDir is allowed for file tools. This is stricter than the
 	// original createAutoMemCanUseTool (which lets Read/Grep/Glob roam unrestricted) but matches the
@@ -190,7 +214,7 @@ func (e *Extractor) runExtraction(ctx context.Context, isTrailingRun bool) error
 	// Mode = ModeBypass so file/command tools never hit an Ask path — the extractor runs in the
 	// background with no TUI to answer.
 	sandboxRoots := []string{e.deps.MemoryDir}
-	if e.deps.UserMemoryDir != "" {
+	if !e.deps.CandidateMode && e.deps.UserMemoryDir != "" {
 		sandboxRoots = append(sandboxRoots, e.deps.UserMemoryDir)
 	}
 	subSandbox := permissions.NewPathSandbox(sandboxRoots[0], sandboxRoots[1:]...)
@@ -211,6 +235,57 @@ func (e *Extractor) runExtraction(ctx context.Context, isTrailingRun bool) error
 	// Advance the cursor only after the run completes (whether it wrote files or not — a "ran but
 	// picked nothing" turn shouldn't be reconsidered).
 	e.advanceCursor(len(messages))
+
+	if e.deps.CandidateMode {
+		candidates, err := ParseCandidateOutput(lastAssistantText(forkedConv))
+		if err != nil {
+			e.deps.debugf("[extractMemories] candidate parse failed: %s", err)
+			_ = e.deps.Audit.Append(memory.MemoryAuditRecord{
+				Event:     memory.EventMemoryFallbackUsed,
+				AgentID:   e.deps.ExtractionScope.AgentID,
+				TeamName:  e.deps.ExtractionScope.TeamName,
+				TaskID:    e.deps.ExtractionScope.TaskID,
+				SessionID: e.deps.ExtractionScope.SessionID,
+				Summary:   "candidate parse failed: " + err.Error(),
+			})
+			return nil
+		}
+		writeResult := memory.MemoryWriteResult{}
+		if e.deps.WritePipeline != nil && len(candidates) > 0 {
+			if result, err := e.deps.WritePipeline.WriteCandidates(ctx, candidates); err != nil {
+				e.deps.debugf("[extractMemories] candidate write failed: %s", err)
+				_ = e.deps.Audit.Append(memory.MemoryAuditRecord{
+					Event:     memory.EventMemoryFallbackUsed,
+					AgentID:   e.deps.ExtractionScope.AgentID,
+					TeamName:  e.deps.ExtractionScope.TeamName,
+					TaskID:    e.deps.ExtractionScope.TaskID,
+					SessionID: e.deps.ExtractionScope.SessionID,
+					Summary:   "candidate write failed: " + err.Error(),
+				})
+			} else {
+				writeResult = result
+			}
+		}
+		_ = e.deps.Audit.Append(memory.MemoryAuditRecord{
+			Event:     memory.EventMemoryExtractCompleted,
+			AgentID:   e.deps.ExtractionScope.AgentID,
+			TeamName:  e.deps.ExtractionScope.TeamName,
+			TaskID:    e.deps.ExtractionScope.TaskID,
+			SessionID: e.deps.ExtractionScope.SessionID,
+			Summary:   "completed memory extraction",
+			Metadata: map[string]string{
+				"candidates": fmt.Sprintf("%d", len(candidates)),
+				"added":      fmt.Sprintf("%d", writeResult.Added),
+				"updated":    fmt.Sprintf("%d", writeResult.Updated),
+				"skipped":    fmt.Sprintf("%d", writeResult.Skipped),
+				"filtered":   fmt.Sprintf("%d", writeResult.Filtered),
+				"conflicts":  fmt.Sprintf("%d", writeResult.Conflicts),
+			},
+		})
+		e.deps.debugf("[extractMemories] finished in %s, %d candidates extracted",
+			time.Since(startTime), len(candidates))
+		return nil
+	}
 
 	writtenPaths := extractWrittenPaths(forkedConv.GetMessages())
 	e.deps.debugf("[extractMemories] finished in %s, %d files written: %v",
@@ -235,6 +310,19 @@ func (e *Extractor) runExtraction(ctx context.Context, isTrailingRun bool) error
 	}
 
 	return nil
+}
+
+func lastAssistantText(conv *conversation.Manager) string {
+	if conv == nil {
+		return ""
+	}
+	msgs := conv.GetMessages()
+	for i := len(msgs) - 1; i >= 0; i-- {
+		if msgs[i].Role == "assistant" && strings.TrimSpace(msgs[i].Content) != "" {
+			return msgs[i].Content
+		}
+	}
+	return ""
 }
 
 // Drain waits for all in-flight extractions (including any pending trailing run) to finish, with a

@@ -38,7 +38,7 @@ func main() {
 		validHooks = nil
 	}
 
-	m := tui.New(cfg.Providers, cfg.MCPServers, validHooks)
+	m := tui.New(cfg.Providers, cfg.MCPServers, validHooks, cfg.Memory)
 	p := tea.NewProgram(m)
 
 	if _, err := p.Run(); err != nil {

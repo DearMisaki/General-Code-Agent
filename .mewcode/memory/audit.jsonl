@@ -1,0 +1,42 @@
+{"time":"2026-09-09T09:10:55.958718Z","event":"memory.recall.started","session_id":"20260909-171041-9c7f","agent_id":"main","summary":"started memory recall"}
+{"time":"2026-09-09T09:11:01.153457Z","event":"memory.recall.completed","session_id":"20260909-171041-9c7f","agent_id":"main","summary":"completed memory recall","metadata":{"count":"0"}}
+{"time":"2026-09-09T09:11:05.82675Z","event":"memory.recall.started","session_id":"20260909-171041-9c7f","agent_id":"main","summary":"started memory recall"}
+{"time":"2026-09-09T09:11:09.796294Z","event":"memory.recall.completed","session_id":"20260909-171041-9c7f","agent_id":"main","summary":"completed memory recall","metadata":{"count":"0"}}
+{"time":"2026-09-09T09:12:02.176647Z","event":"memory.recall.started","session_id":"20260909-171041-9c7f","agent_id":"main","summary":"started memory recall"}
+{"time":"2026-09-09T09:12:06.27369Z","event":"memory.recall.completed","session_id":"20260909-171041-9c7f","agent_id":"main","summary":"completed memory recall","metadata":{"count":"0"}}
+{"time":"2026-09-09T09:12:06.817054Z","event":"memory.extract.started","session_id":"20260909-171041-9c7f","agent_id":"main","summary":"started memory extraction with 3 new messages"}
+{"time":"2026-09-09T09:12:08.166867Z","event":"memory.candidate.accepted","summary":"User plans to travel to Shanghai on 2026-09-10."}
+{"time":"2026-09-09T09:12:09.862004Z","event":"memory.write.added","summary":"User plans to travel to Shanghai on 2026-09-10."}
+{"time":"2026-09-09T09:12:09.862413Z","event":"memory.extract.completed","session_id":"20260909-171041-9c7f","agent_id":"main","summary":"completed memory extraction","metadata":{"added":"1","candidates":"1","conflicts":"0","filtered":"0","skipped":"0","updated":"0"}}
+{"time":"2026-09-09T09:18:49.459939Z","event":"memory.recall.started","session_id":"20260909-171830-7814","agent_id":"main","summary":"started memory recall"}
+{"time":"2026-09-09T09:18:54.124872Z","event":"memory.recall.completed","session_id":"20260909-171830-7814","agent_id":"main","summary":"completed memory recall","metadata":{"count":"1"}}
+{"time":"2026-09-09T09:18:54.125165Z","event":"memory.injected","session_id":"20260909-171830-7814","agent_id":"main","summary":"rendered memory for context"}
+{"time":"2026-09-09T09:18:55.016286Z","event":"memory.extract.started","session_id":"20260909-171830-7814","agent_id":"main","summary":"started memory extraction with 5 new messages"}
+{"time":"2026-09-09T09:18:56.029225Z","event":"memory.fallback.used","session_id":"20260909-171830-7814","agent_id":"main","summary":"candidate parse failed: json: cannot unmarshal string into .candidates.0.entities.0 of type memory.MemoryEntity"}
+{"time":"2026-09-09T09:19:07.166461Z","event":"memory.recall.started","session_id":"20260909-171830-7814","agent_id":"main","summary":"started memory recall"}
+{"time":"2026-09-09T09:19:09.871816Z","event":"memory.recall.completed","session_id":"20260909-171830-7814","agent_id":"main","summary":"completed memory recall","metadata":{"count":"1"}}
+{"time":"2026-09-09T09:19:09.872001Z","event":"memory.injected","session_id":"20260909-171830-7814","agent_id":"main","summary":"rendered memory for context"}
+{"time":"2026-09-09T09:19:17.379867Z","event":"memory.recall.started","session_id":"20260909-171830-7814","agent_id":"main","summary":"started memory recall"}
+{"time":"2026-09-09T09:19:20.903324Z","event":"memory.recall.completed","session_id":"20260909-171830-7814","agent_id":"main","summary":"completed memory recall","metadata":{"count":"1"}}
+{"time":"2026-09-09T09:19:20.903604Z","event":"memory.injected","session_id":"20260909-171830-7814","agent_id":"main","summary":"rendered memory for context"}
+{"time":"2026-09-09T09:19:21.510007Z","event":"memory.extract.started","session_id":"20260909-171830-7814","agent_id":"main","summary":"started memory extraction with 6 new messages"}
+{"time":"2026-09-09T09:19:23.187567Z","event":"memory.candidate.accepted","summary":"User likes eating apples."}
+{"time":"2026-09-09T09:19:25.142161Z","event":"memory.write.added","summary":"User likes eating apples."}
+{"time":"2026-09-09T09:19:25.142412Z","event":"memory.candidate.accepted","summary":"User is traveling to Shanghai on 2026-09-10."}
+{"time":"2026-09-09T09:19:27.497195Z","event":"memory.write.added","summary":"User is traveling to Shanghai on 2026-09-10."}
+{"time":"2026-09-09T09:19:27.497388Z","event":"memory.extract.completed","session_id":"20260909-171830-7814","agent_id":"main","summary":"completed memory extraction","metadata":{"added":"2","candidates":"2","conflicts":"0","filtered":"0","skipped":"0","updated":"0"}}
+{"time":"2026-09-09T09:20:13.457226Z","event":"memory.recall.started","session_id":"20260909-171954-ce4d","agent_id":"main","summary":"started memory recall"}
+{"time":"2026-09-09T09:20:17.880314Z","event":"memory.recall.completed","session_id":"20260909-171954-ce4d","agent_id":"main","summary":"completed memory recall","metadata":{"count":"3"}}
+{"time":"2026-09-09T09:20:17.880529Z","event":"memory.injected","session_id":"20260909-171954-ce4d","agent_id":"main","summary":"rendered memory for context"}
+{"time":"2026-09-09T09:20:19.035885Z","event":"memory.extract.started","session_id":"20260909-171954-ce4d","agent_id":"main","summary":"started memory extraction with 5 new messages"}
+{"time":"2026-09-09T09:20:19.456746Z","event":"memory.extract.completed","session_id":"20260909-171954-ce4d","agent_id":"main","summary":"completed memory extraction","metadata":{"added":"0","candidates":"0","conflicts":"0","filtered":"0","skipped":"0","updated":"0"}}
+{"time":"2026-09-09T09:20:31.854442Z","event":"memory.recall.started","session_id":"20260909-171954-ce4d","agent_id":"main","summary":"started memory recall"}
+{"time":"2026-09-09T09:20:35.56439Z","event":"memory.recall.completed","session_id":"20260909-171954-ce4d","agent_id":"main","summary":"completed memory recall","metadata":{"count":"3"}}
+{"time":"2026-09-09T09:20:35.564644Z","event":"memory.injected","session_id":"20260909-171954-ce4d","agent_id":"main","summary":"rendered memory for context"}
+{"time":"2026-09-09T09:20:36.327017Z","event":"memory.extract.started","session_id":"20260909-171954-ce4d","agent_id":"main","summary":"started memory extraction with 3 new messages"}
+{"time":"2026-09-09T09:20:36.660492Z","event":"memory.extract.completed","session_id":"20260909-171954-ce4d","agent_id":"main","summary":"completed memory extraction","metadata":{"added":"0","candidates":"0","conflicts":"0","filtered":"0","skipped":"0","updated":"0"}}
+{"time":"2026-09-09T09:21:00.728041Z","event":"memory.recall.started","session_id":"20260909-171954-ce4d","agent_id":"main","summary":"started memory recall"}
+{"time":"2026-09-09T09:21:05.090861Z","event":"memory.recall.completed","session_id":"20260909-171954-ce4d","agent_id":"main","summary":"completed memory recall","metadata":{"count":"3"}}
+{"time":"2026-09-09T09:21:05.091173Z","event":"memory.injected","session_id":"20260909-171954-ce4d","agent_id":"main","summary":"rendered memory for context"}
+{"time":"2026-09-09T09:21:06.080045Z","event":"memory.extract.started","session_id":"20260909-171954-ce4d","agent_id":"main","summary":"started memory extraction with 3 new messages"}
+{"time":"2026-09-09T09:21:06.397531Z","event":"memory.extract.completed","session_id":"20260909-171954-ce4d","agent_id":"main","summary":"completed memory extraction","metadata":{"added":"0","candidates":"0","conflicts":"0","filtered":"0","skipped":"0","updated":"0"}}

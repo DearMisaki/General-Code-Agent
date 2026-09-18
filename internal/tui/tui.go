@@ -23,6 +23,7 @@ import (
 	"mewcode/internal/mcp"
 	"mewcode/internal/memory"
 	"mewcode/internal/memory/extractor"
+	"mewcode/internal/memoryruntime"
 	"mewcode/internal/permissions"
 	"mewcode/internal/planfile"
 	"mewcode/internal/prompt"
@@ -52,11 +53,11 @@ const (
 )
 
 type chatMessage struct {
-	role           string
-	content        string
-	toolGroup      []toolBlockInfo
-	subAgentBlock  *subAgentBlock
-	expanded       bool
+	role          string
+	content       string
+	toolGroup     []toolBlockInfo
+	subAgentBlock *subAgentBlock
+	expanded      bool
 }
 
 type subAgentBlock struct {
@@ -127,11 +128,11 @@ type Model struct {
 
 	conversation *conversation.Manager
 
-	chatMessages  []chatMessage
-	toolBlocks    []toolBlockInfo
-	streamBuf     string
-	agentCh       <-chan agent.AgentEvent
-	cancelStream  context.CancelFunc
+	chatMessages []chatMessage
+	toolBlocks   []toolBlockInfo
+	streamBuf    string
+	agentCh      <-chan agent.AgentEvent
+	cancelStream context.CancelFunc
 
 	totalInput  int
 	totalOutput int
@@ -142,19 +143,19 @@ type Model struct {
 	permRespCh   chan<- agent.PermissionResponse
 	permCursor   int
 
-	cmdRegistry    *commands.Registry
-	slashMenuOpen  bool
-	slashMatches   []*commands.Command
-	slashCursor    int
+	cmdRegistry   *commands.Registry
+	slashMenuOpen bool
+	slashMatches  []*commands.Command
+	slashCursor   int
 
-	userScrolled   bool
-	committedUpTo  int
-	bannerPrinted  bool
+	userScrolled  bool
+	committedUpTo int
+	bannerPrinted bool
 
-	atMenuOpen  bool
-	atMatches   []string
-	atCursor    int
-	atPrefix    string
+	atMenuOpen bool
+	atMatches  []string
+	atCursor   int
+	atPrefix   string
 
 	spinner       spinner.Model
 	thinking      bool
@@ -205,12 +206,14 @@ type Model struct {
 	askUserAnswered    map[int]string
 	askUserOnSubmit    bool
 	askUserSubmitIdx   int
-	skillCatalog *skills.Catalog
-	taskMgr      *agents.TaskManager
-	todoList     *todo.TaskList
-	memoryMgr       *memory.Manager
-	memoryExtractor *extractor.Extractor
-	teamMgr         *teams.TeamManager
+	skillCatalog       *skills.Catalog
+	taskMgr            *agents.TaskManager
+	todoList           *todo.TaskList
+	memoryMgr          *memory.Manager
+	memoryExtractor    *extractor.Extractor
+	memoryConfig       memory.MemoryConfig
+	memoryRuntime      *memoryruntime.Runtime
+	teamMgr            *teams.TeamManager
 
 	resumeSessions  []session.SessionInfo
 	resumeFiltered  []session.SessionInfo
@@ -219,7 +222,7 @@ type Model struct {
 	resumeScrollTop int
 }
 
-func New(providers []config.ProviderConfig, mcpConfigs []config.MCPServerConfig, hookConfigs []hooks.Hook) Model {
+func New(providers []config.ProviderConfig, mcpConfigs []config.MCPServerConfig, hookConfigs []hooks.Hook, memoryConfig memory.MemoryConfig) Model {
 	ta := textarea.New()
 	ta.Placeholder = "Send a message..."
 	ta.Prompt = ""
@@ -245,15 +248,16 @@ func New(providers []config.ProviderConfig, mcpConfigs []config.MCPServerConfig,
 	reg.Register(&tools.AskUserQuestionTool{RequestCh: askCh})
 
 	m := Model{
-		providers:    providers,
-		mcpConfigs:   mcpConfigs,
-		hookConfigs:  hookConfigs,
-		state:        stateProviderSelect,
-		textarea:     ta,
-		conversation: conversation.NewManager(),
-		registry:     reg,
-		defaultTools: dt,
-		cmdRegistry:  commands.CreateDefaultRegistry(),
+		providers:          providers,
+		mcpConfigs:         mcpConfigs,
+		hookConfigs:        hookConfigs,
+		memoryConfig:       memoryConfig,
+		state:              stateProviderSelect,
+		textarea:           ta,
+		conversation:       conversation.NewManager(),
+		registry:           reg,
+		defaultTools:       dt,
+		cmdRegistry:        commands.CreateDefaultRegistry(),
 		spinner:            sp,
 		askUserCh:          askCh,
 		subAgentProgressCh: subProgressCh,
@@ -364,6 +368,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.memoryExtractor != nil {
 				_ = m.memoryExtractor.Drain(5000)
 			}
+			if m.memoryRuntime != nil {
+				_ = m.memoryRuntime.Drain(context.Background())
+			}
 			return m, tea.Quit
 		}
 
@@ -433,7 +440,12 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			at.ParentReplacementState = ag.ReplacementState
 		}
 		m.wireSkillsToAgent()
-		m.memoryExtractor = m.installMemoryExtractor(ag, wd, p.Protocol)
+		if err := m.attachMainMemoryRuntime(ag, wd, p.Protocol); err != nil {
+			m.chatMessages = append(m.chatMessages, chatMessage{role: "error", content: fmt.Sprintf("memory runtime: %s", err)})
+		}
+		if m.memoryRuntime == nil {
+			m.memoryExtractor = m.installMemoryExtractor(ag, wd, p.Protocol)
+		}
 		m.historyEntries = history.Load(wd)
 		m.textarea.Focus()
 		m.updateViewport()
@@ -714,7 +726,15 @@ func (m *Model) registerAgentTools(client llm.Client, providerCfg *config.Provid
 	m.registry.Register(&todo.TaskListTool{List: m.todoList})
 	m.registry.Register(&todo.TaskUpdateTool{List: m.todoList})
 	m.registry.Register(&tools.ToolSearchTool{Registry: m.registry, Protocol: protocol})
-	m.registry.Register(&teams.TeamCreateTool{TeamMgr: teamMgr})
+	m.registry.Register(&teams.TeamCreateTool{
+		TeamMgr: teamMgr,
+		MemoryPipelineProvider: func() *memory.MemoryWritePipeline {
+			if m.memoryRuntime == nil {
+				return nil
+			}
+			return m.memoryRuntime.Pipeline
+		},
+	})
 	m.registry.Register(&teams.TeamDeleteTool{TeamMgr: teamMgr})
 	m.registry.Register(&teams.SendMessageTool{TeamMgr: teamMgr, SenderName: "lead"})
 	m.registry.Register(&agents.AgentTool{
@@ -1028,6 +1048,37 @@ func (m *Model) installMemoryExtractor(ag *agent.Agent, wd, protocol string) *ex
 	return extr
 }
 
+func (m *Model) attachMainMemoryRuntime(ag *agent.Agent, wd, protocol string) error {
+	if ag == nil || m.client == nil || m.conversation == nil {
+		return nil
+	}
+	rt, err := memoryruntime.Build(memoryruntime.BuildOptions{
+		Config:       m.memoryConfig,
+		Client:       m.client,
+		Registry:     m.registry,
+		Conversation: m.conversation,
+		ProjectRoot:  wd,
+		Protocol:     protocol,
+		AgentID:      "main",
+		SessionID:    m.sessionID,
+		AppendSystem: func(s string) { m.conversation.AddSystemReminder(s) },
+	})
+	if err != nil {
+		return err
+	}
+	if rt == nil || rt.Store == nil {
+		return nil
+	}
+	rt.AttachAgent(ag)
+	if m.teamMgr != nil {
+		for _, name := range m.teamMgr.ListTeams() {
+			rt.AttachTeam(m.teamMgr.GetTeam(name))
+		}
+	}
+	m.memoryRuntime = rt
+	return nil
+}
+
 // prefetchRelevantMemories runs the recall selector in a goroutine and
 // returns a channel that will receive the rendered system-reminder
 // string (or "" if nothing was selected / selector timed out). Caller
@@ -1037,6 +1088,10 @@ func (m *Model) installMemoryExtractor(ag *agent.Agent, wd, protocol string) *ex
 // SYSTEM prompt is independent of the main conversation's system prompt.
 func (m *Model) prefetchRelevantMemories(query string) <-chan string {
 	out := make(chan string, 1)
+	if m.memoryRuntime != nil && m.memoryRuntime.Recall != nil {
+		out <- ""
+		return out
+	}
 	if m.memoryMgr == nil || m.selectedProvider == nil {
 		out <- ""
 		return out
@@ -1235,7 +1290,12 @@ func (m Model) handleProviderSelect(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			at.ParentReplacementState = ag.ReplacementState
 		}
 		m.wireSkillsToAgent()
-		m.memoryExtractor = m.installMemoryExtractor(ag, wd, p.Protocol)
+		if err := m.attachMainMemoryRuntime(ag, wd, p.Protocol); err != nil {
+			m.chatMessages = append(m.chatMessages, chatMessage{role: "error", content: fmt.Sprintf("memory runtime: %s", err)})
+		}
+		if m.memoryRuntime == nil {
+			m.memoryExtractor = m.installMemoryExtractor(ag, wd, p.Protocol)
+		}
 		m.historyEntries = history.Load(wd)
 		// NOTE: keep m.sessionID == the id wired into ag (SetSessionID) and into
 		// m.fileHistory above; do NOT mint a fresh id here, or compact boundaries
@@ -1317,7 +1377,7 @@ func (m Model) handleChat(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				atIdx := strings.LastIndex(text, "@")
 				if atIdx >= 0 {
 					m.textarea.Reset()
-	m.textarea.SetHeight(1)
+					m.textarea.SetHeight(1)
 					m.textarea.InsertString(text[:atIdx] + "@" + selected + " ")
 				}
 				m.atMenuOpen = false
@@ -1352,7 +1412,7 @@ func (m Model) handleChat(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 				m.slashMatches = nil
 				m.slashCursor = 0
 				m.textarea.Reset()
-	m.textarea.SetHeight(1)
+				m.textarea.SetHeight(1)
 				return m.executeCommand(selected.Name, "")
 			}
 			return m, nil
@@ -1365,7 +1425,7 @@ func (m Model) handleChat(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			if m.slashCursor < len(m.slashMatches) {
 				selected := m.slashMatches[m.slashCursor]
 				m.textarea.Reset()
-	m.textarea.SetHeight(1)
+				m.textarea.SetHeight(1)
 				m.textarea.InsertString("/" + selected.Name + " ")
 				m.slashMenuOpen = false
 				m.slashMatches = nil
@@ -1404,7 +1464,7 @@ func (m Model) handleChat(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if strings.HasPrefix(text, "/") {
 			name, args := commands.Parse(text)
 			m.textarea.Reset()
-	m.textarea.SetHeight(1)
+			m.textarea.SetHeight(1)
 			m.slashMenuOpen = false
 			m.slashMatches = nil
 			m.slashCursor = 0
@@ -2741,8 +2801,8 @@ func (m Model) handleAgentEvent(ev agent.AgentEvent) (tea.Model, tea.Cmd) {
 			// Visible tools: show each as individual line
 			for _, tb := range visibleTools {
 				m.chatMessages = append(m.chatMessages, chatMessage{
-					role:    "tool_visible",
-					content: renderToolBlockText(tb),
+					role:      "tool_visible",
+					content:   renderToolBlockText(tb),
 					toolGroup: []toolBlockInfo{tb},
 				})
 			}
@@ -3276,7 +3336,7 @@ func (m Model) renderChatContent() string {
 				}
 			} else {
 				summary := renderToolGroupSummary(msg.toolGroup)
-				sb.WriteString(toolDoneStyle.Render("  "+summary))
+				sb.WriteString(toolDoneStyle.Render("  " + summary))
 				sb.WriteString(lipgloss.NewStyle().Foreground(dimText).Render("  (ctrl+o to expand)"))
 				sb.WriteString("\n")
 			}
@@ -4134,7 +4194,7 @@ func (m *Model) historyUp() {
 	if m.historyIndex < len(m.historyEntries) {
 		m.historyIndex++
 		m.textarea.Reset()
-	m.textarea.SetHeight(1)
+		m.textarea.SetHeight(1)
 		m.textarea.SetValue(m.historyEntries[len(m.historyEntries)-m.historyIndex])
 	}
 }

@@ -1,0 +1,35 @@
+{
+  "case_id": "ctx_deferred_tool_exposure_001",
+  "query": "为了实现 Go 代码变更和测试，当前应该暴露哪些工具？哪些工具不应该作为默认路径？",
+  "memory_seeds": [
+    {
+      "id": "tool_exposure_apply_patch",
+      "memory": "代码编辑应优先使用 apply_patch，以便变更可审计。",
+      "scope": "project",
+      "kind": "constraint"
+    },
+    {
+      "id": "tool_exposure_go_test",
+      "memory": "Go 功能变更后需要运行 go test 做验证。",
+      "scope": "project",
+      "kind": "tool_gotcha"
+    },
+    {
+      "id": "tool_exposure_rg",
+      "memory": "阅读代码时优先使用 rg 搜索文件和文本。",
+      "scope": "project",
+      "kind": "tool_gotcha"
+    },
+    {
+      "id": "tool_exposure_destructive_git_reset",
+      "memory": "破坏性 git reset 不应作为默认工具路径。",
+      "scope": "project",
+      "kind": "constraint"
+    }
+  ],
+  "expected_answer_contains": ["apply_patch", "go test", "rg"],
+  "required_context_ids": ["tool_exposure_apply_patch", "tool_exposure_go_test", "tool_exposure_rg"],
+  "forbidden_context_ids": ["tool_exposure_destructive_git_reset"],
+  "required_constraints": ["只暴露当前任务需要的工具", "不得暴露破坏性操作作为默认选项"],
+  "k": 6
+}

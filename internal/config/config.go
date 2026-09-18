@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"mewcode/internal/hooks"
+	"mewcode/internal/memory"
 )
 
 var envKeyMap = map[string]string{
@@ -144,10 +145,13 @@ type MCPServerConfig struct {
 }
 
 type AppConfig struct {
-	Providers      []ProviderConfig  `yaml:"providers"`
-	PermissionMode string            `yaml:"permission_mode"`
-	MCPServers     []MCPServerConfig `yaml:"mcp_servers"`
-	Hooks          []hooks.Hook      `yaml:"hooks"`
+	Providers      []ProviderConfig    `yaml:"providers"`
+	PermissionMode string              `yaml:"permission_mode"`
+	MCPServers     []MCPServerConfig   `yaml:"mcp_servers"`
+	Hooks          []hooks.Hook        `yaml:"hooks"`
+	Memory         memory.MemoryConfig `yaml:"memory"`
+
+	hasMemory bool `yaml:"-"`
 }
 
 func loadSingleFile(path string) (*AppConfig, error) {
@@ -159,7 +163,25 @@ func loadSingleFile(path string) (*AppConfig, error) {
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, &ConfigError{Message: fmt.Sprintf("Failed to parse config %s: %s", path, err)}
 	}
+	cfg.hasMemory = yamlHasTopLevelKey(data, "memory")
 	return &cfg, nil
+}
+
+func yamlHasTopLevelKey(data []byte, key string) bool {
+	var node yaml.Node
+	if err := yaml.Unmarshal(data, &node); err != nil || len(node.Content) == 0 {
+		return false
+	}
+	doc := node.Content[0]
+	if doc.Kind != yaml.MappingNode {
+		return false
+	}
+	for i := 0; i+1 < len(doc.Content); i += 2 {
+		if doc.Content[i].Value == key {
+			return true
+		}
+	}
+	return false
 }
 
 func mergeConfig(base, override *AppConfig) *AppConfig {
@@ -184,6 +206,10 @@ func mergeConfig(base, override *AppConfig) *AppConfig {
 		}
 	}
 	base.Hooks = append(base.Hooks, override.Hooks...)
+	if override.hasMemory {
+		base.Memory = override.Memory
+		base.hasMemory = true
+	}
 	return base
 }
 

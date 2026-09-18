@@ -1,0 +1,33 @@
+{
+  "case_id": "ctx_large_tool_result_budget_001",
+  "query": "面对超大的工具结果，上下文管理应保留什么，避免什么？",
+  "memory_seeds": [
+    {
+      "id": "tool_result_budget_record",
+      "memory": "大工具结果应保留替换记录，包括原始来源、摘要和可追踪 ID。",
+      "scope": "project",
+      "kind": "architecture_decision"
+    },
+    {
+      "id": "tool_result_replacement_notice",
+      "memory": "模型上下文应注入工具结果被替换的提示，让后续步骤知道可以按需恢复详情。",
+      "scope": "project",
+      "kind": "project_fact"
+    },
+    {
+      "id": "tool_result_raw_oversized_payload",
+      "memory": "错误做法：把超大原始工具结果全文塞进模型上下文。",
+      "scope": "project",
+      "kind": "event"
+    }
+  ],
+  "expected_answer_contains": ["替换记录", "不要"],
+  "required_context_ids": ["tool_result_budget_record", "tool_result_replacement_notice"],
+  "forbidden_context_ids": ["tool_result_raw_oversized_payload"],
+  "required_constraints": ["大工具结果应保留可追踪替换记录", "不得把超大原文直接塞回模型上下文"],
+  "gains": {
+    "tool_result_budget_record": 3,
+    "tool_result_replacement_notice": 2
+  },
+  "k": 3
+}

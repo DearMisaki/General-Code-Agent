@@ -64,6 +64,28 @@ func TestBuildExtractAutoOnlyPromptNoTeamSection(t *testing.T) {
 	}
 }
 
+func TestBuildExtractCandidatesPromptRequiresJSONOnly(t *testing.T) {
+	prompt := BuildExtractCandidatesPrompt(3, "- [Context](context.md) - context notes", MemoryExtractionScope{
+		UserID:    "u1",
+		ProjectID: "proj",
+		AgentID:   "main",
+	})
+	for _, want := range []string{
+		"valid JSON only",
+		"MemoryCandidate",
+		"Do not store API keys",
+		"source_message_ids",
+		"user_id",
+		"project_id",
+		"记住",
+		"you are",
+	} {
+		if !strings.Contains(prompt, want) {
+			t.Fatalf("prompt missing %q:\n%s", want, prompt)
+		}
+	}
+}
+
 func TestBuildExtractAutoOnlyPromptIncludesGuardrails(t *testing.T) {
 	got := BuildExtractAutoOnlyPrompt(3, "", false, "/home/test/.mewcode/memory/", "/tmp/proj/.mewcode/memory/")
 	for _, expect := range []string{

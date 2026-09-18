@@ -15,6 +15,7 @@ import (
 	"mewcode/internal/filehistory"
 	"mewcode/internal/hooks"
 	"mewcode/internal/llm"
+	"mewcode/internal/memory"
 	"mewcode/internal/permissions"
 	"mewcode/internal/toolresult"
 	"mewcode/internal/tools"
@@ -49,8 +50,14 @@ type Agent struct {
 	// ToolNameFilter, when non-nil, drops any tool whose Name returns false from the schemas sent to
 	// the LLM. The filter is consulted at the top of every iteration so callers can flip Coordinator
 	// Mode on or off (e.g., when a team is created/torn down) without restarting the agent.
-	Instructions   string
-	MemoryContent  string
+	Instructions  string
+	MemoryContent string
+	MemoryRecall  interface {
+		Recall(context.Context, memory.RecallRequest) (memory.RecallResult, error)
+	}
+	MemoryExtraction interface {
+		Execute(context.Context) error
+	}
 	ToolNameFilter func(name string) bool
 	// OnLoopComplete, when non-nil, is invoked fire-and-forget after the agent reaches LoopComplete
 	// (final assistant message, no tool calls remaining). Used by ch09 background memory extraction.
@@ -239,6 +246,18 @@ func (a *Agent) Run(ctx context.Context, conv *conversation.Manager) <-chan Agen
 			if a.NotificationFn != nil {
 				notifications = a.NotificationFn()
 			}
+			memoryContent := a.MemoryContent
+			if a.MemoryRecall != nil {
+				result, err := a.MemoryRecall.Recall(ctx, memory.RecallRequest{
+					UserQuery: latestUserMessage(conv),
+					ProjectID: a.WorkDir,
+					AgentID:   "main",
+					SessionID: a.SessionID,
+				})
+				if err == nil && result.Rendered != "" {
+					memoryContent = joinMemoryContent(memoryContent, result.Rendered)
+				}
+			}
 
 			a.emitHook(hooks.EventTurnStart, "", nil)
 
@@ -262,7 +281,7 @@ func (a *Agent) Run(ctx context.Context, conv *conversation.Manager) <-chan Agen
 				DeferredToolNames: a.Registry.GetDeferredToolNames(),
 				ActiveSkills:      a.activeSkills,
 				Instructions:      a.Instructions,
-				MemoryContent:     a.MemoryContent,
+				MemoryContent:     memoryContent,
 				Notifications:     notifications,
 				UsageAnchor:       usageAnchor,
 				CompactTracking:   a.compactTracking,
@@ -412,6 +431,9 @@ func (a *Agent) Run(ctx context.Context, conv *conversation.Manager) <-chan Agen
 				if a.OnLoopComplete != nil {
 					go a.OnLoopComplete(conv)
 				}
+				if a.MemoryExtraction != nil {
+					_ = a.MemoryExtraction.Execute(ctx)
+				}
 				return
 			}
 
@@ -516,6 +538,31 @@ func buildActiveSkillsReminder(active map[string]string) string {
 		sb.WriteString("\n\n")
 	}
 	return sb.String()
+}
+
+func latestUserMessage(conv *conversation.Manager) string {
+	if conv == nil {
+		return ""
+	}
+	msgs := conv.GetMessages()
+	for i := len(msgs) - 1; i >= 0; i-- {
+		if msgs[i].Role == "user" && strings.TrimSpace(msgs[i].Content) != "" && len(msgs[i].ToolResults) == 0 {
+			return msgs[i].Content
+		}
+	}
+	return ""
+}
+
+func joinMemoryContent(existing, recalled string) string {
+	existing = strings.TrimSpace(existing)
+	recalled = strings.TrimSpace(recalled)
+	if existing == "" {
+		return recalled
+	}
+	if recalled == "" {
+		return existing
+	}
+	return existing + "\n\n" + recalled
 }
 
 // filterSchemasByName keeps only the tool schemas whose "name" passes the allow predicate. Used by

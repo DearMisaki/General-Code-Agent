@@ -121,7 +121,44 @@ go tool trace trace.out
 go test ./internal/contextmgr ./internal/teams ./internal/orchestration -race -count=1
 ```
 
-### 1.7 初始性能门槛
+### 1.7 Live Eval 命令
+
+`mew-eval` 现在有两种 runner：
+
+- `smoke`：默认值，只验证 fixture、scorer 和 JSONL 输出，不调用 LLM，不调用 mem0。
+- `live`：显式启用，真实写入 mem0、真实召回 memory、真实经过主 Agent 的 context gateway，并调用配置中的 LLM provider。
+
+离线 smoke：
+
+```bash
+go run ./cmd/mew-eval --mode context --cases testdata/evals/context --out /tmp/context-eval.jsonl
+go run ./cmd/mew-eval --mode teammate --cases testdata/evals/teammate --out /tmp/teammate-eval.jsonl
+```
+
+真实 context live eval：
+
+```bash
+go run ./cmd/mew-eval \
+  --mode context \
+  --runner live \
+  --cases testdata/evals/context \
+  --config .mewcode/config.yaml \
+  --provider deepseek \
+  --out /tmp/context-live-eval.jsonl \
+  --user-id eval-user \
+  --app-id mewcode-eval \
+  --max-cases 1
+```
+
+注意：
+
+- live context eval 总是要求 `memory.long_term.enabled=true` 且 `memory.long_term.backend=mem0-platform`。
+- `--config` 必须显式传入，避免读取用户目录配置导致结果不可复现。
+- `--user-id` 和 `--app-id` 用于 mem0 正向 scope，不能省略成纯 wildcard 检索。
+- `--max-cases 1` 用于先做低成本 smoke；去掉后会跑完整 context fixture 集。
+- live runner 会产生真实 LLM 和 mem0 API 调用成本。
+
+### 1.8 初始性能门槛
 
 - `ContextGateway.PrepareTurn`：1000 条普通消息、无压缩时 p95 小于 20ms。
 - `Renderer`：100 个 active skills 渲染 p95 小于 10ms。
@@ -132,7 +169,7 @@ go test ./internal/contextmgr ./internal/teams ./internal/orchestration -race -c
 - 所有并发相关测试必须通过 `-race`。
 - 长时间压测后不能出现 goroutine 泄漏、临时文件堆积、stale lock 阻塞。
 
-### 1.8 代码性能测试产物
+### 1.9 代码性能测试产物
 
 - benchmark 原始输出：保存 `go test -bench` 输出。
 - profile 文件：保存 CPU、memory、block、mutex profile。

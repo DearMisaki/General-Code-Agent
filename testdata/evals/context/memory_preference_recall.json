@@ -1,0 +1,33 @@
+{
+  "case_id": "ctx_memory_preference_recall_001",
+  "query": "请根据用户长期偏好回答：接下来解释实现方案时应该使用什么语言和风格？",
+  "memory_seeds": [
+    {
+      "id": "memory_pref_language_zh",
+      "memory": "用户偏好使用中文进行项目沟通和技术解释。",
+      "scope": "user",
+      "kind": "preference"
+    },
+    {
+      "id": "memory_pref_concise_answer",
+      "memory": "用户偏好工程化、直接、不要营销式话术的简洁回答。",
+      "scope": "user",
+      "kind": "preference"
+    },
+    {
+      "id": "memory_pref_verbose_default",
+      "memory": "过期偏好：用户希望每次都输出很长的背景说明。",
+      "scope": "user",
+      "kind": "event"
+    }
+  ],
+  "expected_answer_contains": ["中文", "简洁"],
+  "required_context_ids": ["memory_pref_language_zh", "memory_pref_concise_answer"],
+  "forbidden_context_ids": ["memory_pref_verbose_default"],
+  "required_constraints": ["优先使用中文回答", "回答应保持工程化简洁"],
+  "gains": {
+    "memory_pref_language_zh": 3,
+    "memory_pref_concise_answer": 1
+  },
+  "k": 4
+}
